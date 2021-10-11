@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import random
 from sklearn.mixture import GaussianMixture
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, LabelEncoder
@@ -20,17 +21,24 @@ medianHouseValue = []
 
 
 def auto_ml(dataset):
-    feature_combination_list = []
 
-    # TODO: 여기서 feature combination 자동으로 만들어서
-    # TODO: 위에 리스트에 넣어주는 코드 짜야할 것 같아요
+    # Randomly feature selection
+    feature_combination_list = []
+    numeric_cols = list(dataset.columns)
+    numeric_cols.remove('ocean_proximity')
+
+    for i in range(4):
+        selected_features = random.sample(numeric_cols, i + 2)
+        feature_combination_list.append(selected_features)
 
     for combination in feature_combination_list:
         data_combination = encode_scale_combination(dataset, combination, ['ocean_proximity'])
         for data in data_combination:
+            # TODO: 출력해보면 인코딩 스케일링이 안돼서 나옵니다
+            print()
             # print(data.head(10))
-            test_gaussian(data)
-            doDBSCAN(data)
+            # test_gaussian(data)
+            # doDBSCAN(data)
 
 
 def encode_scale_combination(dataset, numerical_feature_list, categorical_feature_list):
@@ -63,16 +71,16 @@ def encode_scale_combination(dataset, numerical_feature_list, categorical_featur
                 result[i][numerical_feature_list] = scaler.fit_transform(dataset[numerical_feature_list])
             elif len(categorical_feature_list) != 0:
                 result[i][categorical_feature_list] = encoder.fit_transform(dataset[categorical_feature_list])
-            for k in [3, 5, 10]:
-                # save in dictionary
-                dataset_type = scalers_name[int(i / 2)] + "_" + encoders_name[i % 2]
-                result_dict[dataset_type] = result[i]
+            # for k in [3, 5, 10]:
+            #     # save in dictionary
+            #     dataset_type = scalers_name[int(i / 2)] + "_" + encoders_name[i % 2]
+            #     result_dict[dataset_type] = result[i]
 
-                # EM(GMM) test
-                test_gaussian()
-                print_result()
+                # # EM(GMM) test
+                # test_gaussian()
+                # print_result()
 
-            i = i + 1
+            # i = i + 1
 
     return result
 
