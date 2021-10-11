@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import random
 from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
 from sklearn.metrics import silhouette_score
@@ -22,14 +23,20 @@ medianHouseValue = []
 # various model parameters values, and
 # various hyperparameters values.
 def auto_ml(dataset):
-    feature_combination_list = []
 
-    # TODO: 여기서 feature combination 자동으로 만들어서
-    # TODO: 위에 리스트에 넣어주는 코드 짜야할 것 같아요
+    # Randomly feature selection
+    feature_combination_list = []
+    numeric_cols = list(dataset.columns)
+    numeric_cols.remove('ocean_proximity')
+
+    for i in range(4):
+        selected_features = random.sample(numeric_cols, i + 2)
+        feature_combination_list.append(selected_features)
 
     for combination in feature_combination_list:
         data_combination = scale_encode_combination(dataset, combination, ['ocean_proximity'])
         for data in data_combination:
+            # TODO: 인코딩 & 스케일링 확인
             # print(data.head(10))
             test_gaussian(data)
             test_dbscan(data)
@@ -405,7 +412,7 @@ df5 = df_encoded_scaled[col5]
 print("\n-------The result of CLARANS---------\n")
 test_kmeans(df3)
 
-# auto_ml(df1)
+auto_ml(df1)
 # autoML(df2)
 # autoML(df3)
 # autoML(df4)
