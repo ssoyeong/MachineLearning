@@ -1,19 +1,20 @@
+import random
 import warnings
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import random
+from pprint import pprint as pp
 from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, LabelEncoder
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler, Normalizer
 from sklearn.cluster import KMeans, DBSCAN, MeanShift, estimate_bandwidth
-from pyclustering.cluster.clarans import clarans  # Class for implementing CLARANS algorithm
-from pyclustering.utils import timedcall          # To execute a function with execution time recorded
-from pyclustering.cluster import cluster_visualizer_multidim  # Class for plotting multi-dimensional data
 from sklearn.neighbors import NearestNeighbors
+from pyclustering.cluster import clarans, cluster_visualizer_multidim  # Modules for implementing CLARANS algorithm and plotting multi-dimensional data
+from pyclustering.utils import timedcall                               # To execute a function with execution time recorded
+
 warnings.filterwarnings('ignore')
 medianHouseValue = []
 
@@ -24,8 +25,7 @@ medianHouseValue = []
 # various model parameters values, and
 # various hyperparameters values.
 def auto_ml(dataset):
-
-    # Randomly feature selection
+    # Selecting features randomly
     feature_combination_list = []
     numeric_cols = list(dataset.columns)
     numeric_cols.remove('ocean_proximity')
@@ -34,13 +34,17 @@ def auto_ml(dataset):
         selected_features = random.sample(numeric_cols, i + 2)
         feature_combination_list.append(selected_features)
 
-    for combination in feature_combination_list:
+    # TODO: 테스트해보면 출력 잘되는거 볼 수 있으실 거예요
+    print("=> combination dataset! (15 types)")
+    data_combination = scale_encode_combination(dataset, ['total_rooms', 'households'], ['ocean_proximity'])
+    pp(data_combination)
+    test_gaussian(data_combination['standard_ordinal'])
+
+    for combination in feature_combination_list.items():
         data_combination = scale_encode_combination(dataset, combination, ['ocean_proximity'])
-        for data in data_combination:
-            # TODO: 인코딩 & 스케일링 확인
-            print(data.head(10))
-            # test_gaussian(data)
-            # test_dbscan(data)
+        for data_name, data in data_combination:
+            test_gaussian(data)
+            test_dbscan(data)
 
 
 # Dataset scaling and encoding function
@@ -63,29 +67,27 @@ def scale_encode_combination(dataset, numerical_feature_list, categorical_featur
 
     result = []
     result_dict = {}
-    i = 0
+    k = 0
 
-    # scalers x encoders = 10 combination
-    for scaler in scalers_list:
-        for encoder in encoders_list:
+    # scalers x encoders = 15 combinations
+    for i, scaler in enumerate(scalers_list):
+        for j, encoder in enumerate(encoders_list):
             result.append(dataset.copy())
-            # scaling
+            # scaling and encoding
             if len(numerical_feature_list) != 0:
-                result[i][numerical_feature_list] = scaler.fit_transform(dataset[numerical_feature_list])
-            elif len(categorical_feature_list) != 0:
-                result[i][categorical_feature_list] = encoder.fit_transform(dataset[categorical_feature_list])
-            # for k in [3, 5, 10]:
-            #     # save in dictionary
-            #     dataset_type = scalers_name[int(i / 2)] + "_" + encoders_name[i % 2]
-            #     result_dict[dataset_type] = result[i]
-            #
-            #     # EM(GMM) test
-            #     test_gaussian()
-            #     print_result()
-            #
-            # i = i + 1
+                result[k][numerical_feature_list] = scaler.fit_transform(dataset[numerical_feature_list])
+            if len(categorical_feature_list) != 0 and len(categorical_feature_list) > 1:
+                result[k][categorical_feature_list] = encoder.fit_transform(dataset[categorical_feature_list])
+            elif len(categorical_feature_list) == 1:
+                result[k][categorical_feature_list[0]] = encoder.fit_transform(dataset[categorical_feature_list])
 
-    return result
+            # save in dictionary
+            dataset_type = scalers_name[i] + "_" + encoders_name[j]
+            result_dict[dataset_type] = result[k]
+
+            k = k + 1
+
+    return result_dict
 
 
 def encode_scale_temp(dataframe, col):
@@ -228,18 +230,27 @@ def test_kmeans(x):
 
 # EM(GMM)
 def test_gaussian(x):
+    pca = PCA(n_components=2)
+    x = pd.DataFrame(pca.fit_transform(x))
+
+    # Parameters
+    init_params = ['kmeans', 'random']
+
     model_gaussian = GaussianMixture(4, init_params='random')
     model_gaussian.fit(x)
     y = model_gaussian.predict(x)
     print_result('Gaussian Mixture', x, y, 5)
+
     """
     for i in range(2, 12):
-        model_gaussian = GaussianMixture(i, init_params='random')
-        model_gaussian.fit(x)
-        y = model_gaussian.predict(x)
-        for j in range(4, 7)
-            print_result(x, y, i)
+        for j in init_params:
+            model_gaussian = GaussianMixture(i, init_params='random')
+            model_gaussian.fit(x)
+            y = model_gaussian.predict(x)
+            for k in range(4, 7):
+                print_result('Gaussian Mixture', x, y, k)
     """
+
 
 # DBSCAN
 def test_dbscan(x):
@@ -299,8 +310,7 @@ def test_clarans(x, k, a):  # x: dataframe, k: num of cluster, a: feature name t
     h_data = x.values.tolist()
     # clarans parameters:
     # dataset, number of cluster, numlocal(amount of iterations for solving the problem), maxneighbor
-    clarans_obj = clarans(random.sample(h_data, 300), k, 3,
-                          5)  # 프로그램 실행하는 데 풀 데이터를 사용하면 시간이 너무 오래 걸려서 random으로 300개 뽑아내는 걸로 바꿨습니다
+    clarans_obj = clarans(random.sample(h_data, 300), k, 3, 5)  # 프로그램 실행하는 데 풀 데이터를 사용하면 시간이 너무 오래 걸려서 random으로 300개 뽑아내는 걸로 바꿨습니다
     (tks, res) = timedcall(clarans_obj.process)
     print("Execution time : ", tks, "\n")
     clst = clarans_obj.get_clusters()
@@ -391,7 +401,8 @@ def print_result(model_name, x, y, quantile):
     plt.show()
 
     # Print the measurement results using Silhouette, knee, and purity
-    silhouette_score(x, y)
+    silhouette_score(x, y, metric='euclidean')
+    silhouette_score(x, y, metric='manhattan')
 
 
 ######################################################################################################
@@ -450,5 +461,3 @@ df5 = df_encoded_scaled[col5]
 # autoML(df3)
 # autoML(df4)
 # autoML(df5)
-
-test_dbscan(df3)
