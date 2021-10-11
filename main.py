@@ -3,52 +3,40 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import random
+from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, LabelEncoder
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler, Normalizer
-from sklearn.cluster import DBSCAN
-from pyclustering.cluster.clarans import clarans  #Class for implementing CLARANS algorithm
-from pyclustering.utils import timedcall          #To execute a function with execution time recorded
-from sklearn.cluster import MeanShift, estimate_bandwidth
-from sklearn.decomposition import PCA
-from sklearn.cluster import estimate_bandwidth
-from sklearn.cluster import KMeans
-warnings.filterwarnings('ignore')
+from sklearn.cluster import KMeans, DBSCAN, MeanShift, estimate_bandwidth
+from pyclustering.cluster.clarans import clarans  # Class for implementing CLARANS algorithm
+from pyclustering.utils import timedcall          # To execute a function with execution time recorded
 
+warnings.filterwarnings('ignore')
 medianHouseValue = []
 
 
+# Automatically test with
+# various scaled and encoded dataset,
+# various subsets of the features of the dataset,
+# various model parameters values, and
+# various hyperparameters values.
 def auto_ml(dataset):
-
-    # Randomly feature selection
     feature_combination_list = []
-    numeric_cols = list(dataset.columns)
-    numeric_cols.remove('ocean_proximity')
 
-    for i in range(4):
-        selected_features = random.sample(numeric_cols, i + 2)
-        feature_combination_list.append(selected_features)
+    # TODO: 여기서 feature combination 자동으로 만들어서
+    # TODO: 위에 리스트에 넣어주는 코드 짜야할 것 같아요
 
     for combination in feature_combination_list:
-        data_combination = encode_scale_combination(dataset, combination, ['ocean_proximity'])
+        data_combination = scale_encode_combination(dataset, combination, ['ocean_proximity'])
         for data in data_combination:
-            # TODO: 출력해보면 인코딩 스케일링이 안돼서 나옵니다
-            print()
             # print(data.head(10))
-            # test_gaussian(data)
-            # doDBSCAN(data)
+            test_gaussian(data)
+            test_dbscan(data)
 
 
-def encode_scale_combination(dataset, numerical_feature_list, categorical_feature_list):
-    # encoders
-    encoder_ordinal = OrdinalEncoder()
-    encoder_onehot = OneHotEncoder()
-    encoder_label = LabelEncoder()
-    encoders_list = [encoder_ordinal, encoder_onehot, encoder_label]
-    encoders_name = ["ordinal", "onehot", "label"]
-
+# Dataset scaling and encoding function
+def scale_encode_combination(dataset, numerical_feature_list, categorical_feature_list):
     # scalers
     scaler_standard = StandardScaler()
     scaler_minmax = MinMaxScaler()
@@ -57,6 +45,13 @@ def encode_scale_combination(dataset, numerical_feature_list, categorical_featur
     scaler_normalize = Normalizer()
     scalers_list = [scaler_standard, scaler_minmax, scaler_robust, scaler_maxabs, scaler_normalize]
     scalers_name = ["standard", "minmax", "robust", "maxabs", "normalize"]
+
+    # encoders
+    encoder_ordinal = OrdinalEncoder()
+    encoder_onehot = OneHotEncoder()
+    encoder_label = LabelEncoder()
+    encoders_list = [encoder_ordinal, encoder_onehot, encoder_label]
+    encoders_name = ["ordinal", "onehot", "label"]
 
     result = []
     result_dict = {}
@@ -71,120 +66,178 @@ def encode_scale_combination(dataset, numerical_feature_list, categorical_featur
                 result[i][numerical_feature_list] = scaler.fit_transform(dataset[numerical_feature_list])
             elif len(categorical_feature_list) != 0:
                 result[i][categorical_feature_list] = encoder.fit_transform(dataset[categorical_feature_list])
-            # for k in [3, 5, 10]:
-            #     # save in dictionary
-            #     dataset_type = scalers_name[int(i / 2)] + "_" + encoders_name[i % 2]
-            #     result_dict[dataset_type] = result[i]
+            for k in [3, 5, 10]:
+                # save in dictionary
+                dataset_type = scalers_name[int(i / 2)] + "_" + encoders_name[i % 2]
+                result_dict[dataset_type] = result[i]
 
-                # # EM(GMM) test
-                # test_gaussian()
-                # print_result()
+                # EM(GMM) test
+                test_gaussian()
+                print_result()
 
-            # i = i + 1
+            i = i + 1
 
     return result
 
 
-def doKmeans(X):
-    pca=PCA(n_components=2)
-    n_clusters=[2,3,4,5,6,7,8]
-    init=['k-means++','random']
-    n_init=[10,20,30,40,50]
-    max_iter=[100,300,500,700,900]
-    algorithm=['auto','full','elkan']
+def encode_scale_temp(dataframe, col):
+    # Encode the dataset
+    df_ordinal = dataframe.copy()
+    df_label = dataframe.copy()
+
+    x = pd.DataFrame(df[col])
+    # Convert categorical features to numeric values using ordinalEncoder
+    ordinalEncoder = OrdinalEncoder()
+    ordinalEncoder.fit(x)
+    df_ordinal[col] = ordinalEncoder.transform(x)
+
+    """
+    # Convert categorical features to numeric values using labelEncoder
+    labelEncoder = LabelEncoder()
+    labelEncoder.fit(x)
+    df_label[col] = labelEncoder.transform(x)
+
+    # Scaling the dataset
+    df_ordinal_standard = df_ordinal.copy()
+    df_ordinal_robust = df_ordinal.copy()
+    df_ordinal_minmax = df_ordinal.copy()
+    df_ordinal_maxabs = df_ordinal.copy()
+    df_label_standard = df_label.copy()
+    df_label_robust = df_label.copy()
+    df_label_minmax = df_label.copy()
+    df_label_maxabs = df_label.copy()
+
+    # Scaling the dataset using StandardScaler
+    scaler = StandardScaler()
+    df_ordinal_standard = scaler.fit_transform(df_ordinal)
+    df_ordinal_standard = pd.DataFrame(df_ordinal_standard, columns=df_ordinal.columns)
+    df_label_standard = scaler.fit_transform(df_label)
+    df_label_standard = pd.DataFrame(df_label_standard, columns=df_label.columns)
+
+    # Scaling the dataset using RobustScaler
+    scaler = RobustScaler()
+    df_ordinal_robust = scaler.fit_transform(df_ordinal)
+    df_ordinal_robust = pd.DataFrame(df_ordinal_robust, columns=df_ordinal.columns)
+    df_label_robust = scaler.fit_transform(df_label)
+    df_label_robust = pd.DataFrame(df_label_robust, columns=df_label.columns)
+    """
+    # Scaling the dataset using MinMaxScaler
+    scaler = MinMaxScaler()
+    df_ordinal_minmax = scaler.fit_transform(df_ordinal)
+    df_ordinal_minmax = pd.DataFrame(df_ordinal_minmax, columns=df_ordinal.columns)
+    """
+    df_label_minmax = scaler.fit_transform(df_label)
+    df_label_minmax = pd.DataFrame(df_label_minmax, columns=df_label.columns)
+    
+    # Scaling the dataset using MaxAbsScaler
+    scaler = MaxAbsScaler()
+    df_ordinal_maxabs = scaler.fit_transform(df_ordinal)
+    df_ordinal_maxabs = pd.DataFrame(df_ordinal_maxabs, columns=df_ordinal.columns)
+    df_label_maxabs = scaler.fit_transform(df_label)
+    df_label_maxabs = pd.DataFrame(df_label_maxabs, columns=df_label.columns)
+
+    # Show the results using OrdinalEncoder and MinMaxScaler
+    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(15, 15))
+    ax1.set_title('Before Scaling the OrdinalEncoded dataset')
+    ax2.set_title('After MinMax Scaling the OrdinalEncoded dataset')
+
+    for i in df_ordinal_minmax.columns:
+        sns.kdeplot(df_ordinal[i], ax=ax1)
+        sns.kdeplot(df_ordinal_minmax[i], ax=ax2)
+
+    # plt.show()
+    """
+
+    # Return the one of the encoded and scaled datasets
+    return df_ordinal_minmax
+
+# K-means
+def test_kmeans(x):
+    pca = PCA(n_components=2)
+    n_clusters = [2, 3, 4, 5, 6, 7, 8]
+    init = ['k-means++', 'random']
+    n_init = [10, 20, 30, 40, 50]
+    max_iter = [100, 300, 500, 700, 900]
+    algorithm = ['auto', 'full', 'elkan']
     distortions = []
+
+    x = pca.fit_transform(x)
+    kmeans = KMeans(n_clusters=4)
+    kmeans.fit(x)
+    y = kmeans.predict(x)
+    print_result('K-Means', pd.DataFrame(x), y, 5)
+
+    """
     # elbow method
     for k in range(2, 9):
         kmeans = KMeans(n_clusters=k)
-        kmeans.fit(X)
+        kmeans.fit(x)
         distortions.append(kmeans.inertia_)
-    fig = plt.figure(figsize=(10, 5))
+
+    
+    plt.figure(figsize=(10, 5))
     plt.plot(range(2, 9), distortions)
     plt.grid(True)
     plt.title('Elbow curve')
     plt.show()
     list={}
-    for i in range(0,len(n_clusters)):
+
+    for i in range(0, len(n_clusters)):
         plt.figure(figsize=(16, 4))
-        plt.rc("font",size=5)
+        plt.suptitle("K-Means: N_CLUSTERS={0}".format(n_clusters[i]))
+        plt.subplots_adjust(wspace=0.4, hspace=0.4)
+        plt.rc("font", size=5)
+
         # SUBPLOT POSITION
         position = 1
         for j in range(0, len(max_iter)):
-                    X=pca.fit_transform(X)
-                    model = KMeans(random_state=0,n_clusters=n_clusters[i],init='k-means++',max_iter=max_iter[j])
-                    model.fit(X)
-                    label=model.labels_
-                    cluster_id=pd.DataFrame(label)
-                    kx=pd.DataFrame(X)
-                    k1=pd.concat([kx,cluster_id],axis=1)
-                    k1.columns=['p1','p2',"cluster"]
-                    labeled=k1.groupby("cluster")
-                    plt.subplot(1, 5, position)
-                    score = silhouette_score(X, label, metric="euclidean")
-                    plt.title("MAX_ITER={maxiter}Score={score}".format(maxiter=max_iter[j],score=round(score,3)))
-                    for cluster, pos in labeled:
-                        if cluster == -1:
-                            # NOISE WITH COLOR BLACK
-                            plt.plot(pos.p1, pos.p2, marker='o', linestyle='', color='black')
-                        else:
-                            plt.plot(pos.p1, pos.p2, marker='o', linestyle='')
-                    position += 1
-        plt.subplots_adjust(wspace=0.4, hspace=0.4)
-        plt.suptitle("K-Means: N_CLUSTERS={0}".format(n_clusters[i]))
-        plt.show()
+            x = pca.fit_transform(x)
+            model = KMeans(random_state=0, n_clusters=n_clusters[i], init='k-means++', max_iter=max_iter[j])
+            model.fit(x)
+            label = model.labels_
 
-
-def domeanShift(X):
-    bin_seeding=[True,False]
-    min_bin_freq=[1,3,5,7,9,11]
-    cluster_all=[True, False]
-    n_jobs:[1,10,100,1000,2000]
-    max_iter=[100,300,500,700, 900,1000]
-    pca = PCA(n_components=2)
-    sampleList=[100,1000,5000,10000]
-    for i in range(0,len(sampleList)):
-        bandwidth=estimate_bandwidth(X,n_samples=sampleList[i])
-        plt.figure(figsize=(16, 4))
-        plt.rc("font", size=5)
-        position = 1
-        for j in range(0, len(min_bin_freq)):
-            model=MeanShift(bandwidth=bandwidth, cluster_all=True,max_iter=max_iter[2],min_bin_freq=min_bin_freq[j])
-            X=pca.fit_transform(X)
-            model.fit(X)
-            labels=model.labels_
-            cluster_id = pd.DataFrame(labels)
-            kx = pd.DataFrame(X)
+            cluster_id = pd.DataFrame(label)
+            kx = pd.DataFrame(x)
             k1 = pd.concat([kx, cluster_id], axis=1)
             k1.columns = ['p1', 'p2', "cluster"]
             labeled = k1.groupby("cluster")
-            plt.subplot(1, 6, position)
-            score = silhouette_score(X, labels, metric="euclidean")
-            plt.title("Min_bin_freq={maxiter} Score={score}".format(maxiter=min_bin_freq[j], score=round(score, 3)))
+            score = silhouette_score(x, label, metric="euclidean")
+
+            plt.subplot(1, 5, position)
+            plt.title("MAX_ITER={maxiter}Score={score}".format(maxiter=max_iter[j],score=round(score,3)))
+            position += 1
+
             for cluster, pos in labeled:
                 if cluster == -1:
                     # NOISE WITH COLOR BLACK
                     plt.plot(pos.p1, pos.p2, marker='o', linestyle='', color='black')
                 else:
                     plt.plot(pos.p1, pos.p2, marker='o', linestyle='')
-            position += 1
-        plt.subplots_adjust(wspace=0.4, hspace=0.4)
-        plt.suptitle("MeansShift: N_samples={0}".format(sampleList[i]))
+
         plt.show()
+        """
 
 
 # EM(GMM)
 def test_gaussian(x):
+    model_gaussian = GaussianMixture(4, init_params='random')
+    model_gaussian.fit(x)
+    y = model_gaussian.predict(x)
+    print_result('Gaussian Mixture', x, y, 5)
+    """
     for i in range(2, 12):
         model_gaussian = GaussianMixture(i, init_params='random')
         model_gaussian.fit(x)
         y = model_gaussian.predict(x)
-        print_result(x, y, i)
+        for j in range(4, 7)
+            print_result(x, y, i)
+    """
 
-
-def doDBSCAN(dataset):
+# DBSCAN
+def test_dbscan(x):
     # PCA
     pca = PCA(n_components=2)
-    principalComponents = pca.fit_transform(dataset)
+    principalComponents = pca.fit_transform(x)
     df_new = pd.DataFrame(data=principalComponents, columns=['principal component 1', 'principal component 2'])
 
     # Parameters of DBSCAN
@@ -211,9 +264,11 @@ def doDBSCAN(dataset):
         plt.savefig('./DBSCAN/dbscan_minsamples_' + str(min_samples[i]) + '.png', dpi=300)
 
 
-def doCLARANS(dataset, k):
-    h_data = dataset.tolist()
-    # clarans(dataset, number of cluster, numlocal(amount of iterations for solving the problem, maxneighbor)
+# CLARANS
+def test_clarans(x, k):
+    h_data = x.tolist()
+    # clarans parameters:
+    # dataset, number of cluster, numlocal(amount of iterations for solving the problem), maxneighbor
     clarans_obj = clarans(h_data[0:50], k, 3, 5)  # 프로그램 실행하는 데 풀 데이터를 사용하면 시간이 너무 오래 걸려서 그냥 예시로 데이터 셋 50개만 해봤어요! 바꾸셔도 되요!
     (tks, res) = timedcall(clarans_obj.process)
     print("Execution time : ", tks, "\n")
@@ -223,22 +278,76 @@ def doCLARANS(dataset, k):
     print("\nIndex of the best medoids : ", med)
 
 
+# Mean Shift
+def test_mean_shift(x):
+    bin_seeding = [True, False]
+    min_bin_freq = [1, 3, 5, 7, 9, 11]
+    cluster_all = [True, False]
+    n_jobs = [1, 10, 100, 1000, 2000]
+    max_iter = [100, 300, 500, 700, 900, 1000]
+    pca = PCA(n_components=2)
+    sample_list = [100, 1000, 5000, 10000]
+
+    x = pca.fit_transform(x)
+    model = MeanShift(bandwidth=100, cluster_all=True, max_iter=max_iter[2], min_bin_freq=min_bin_freq[2])
+    model.fit(x)
+    y = model.predict(x)
+    print_result('Mean Shift', x, y, 5)
+
+    """
+    for i in range(0, len(sample_list)):
+        plt.figure(figsize=(16, 4))
+        plt.suptitle("MeansShift: N_samples={0}".format(sample_list[i]))
+        plt.subplots_adjust(wspace=0.4, hspace=0.4)
+        plt.rc("font", size=5)
+
+        position = 1
+        bandwidth = estimate_bandwidth(x, n_samples=sample_list[i])
+
+        for j in range(0, len(min_bin_freq)):
+            x = pca.fit_transform(x)
+            model = MeanShift(bandwidth=bandwidth, cluster_all=True, max_iter=max_iter[2], min_bin_freq=min_bin_freq[j])
+            model.fit(x)
+
+            labels = model.labels_
+            cluster_id = pd.DataFrame(labels)
+            kx = pd.DataFrame(x)
+            k1 = pd.concat([kx, cluster_id], axis=1)
+            k1.columns = ['p1', 'p2', "cluster"]
+            labeled = k1.groupby("cluster")
+
+            score = silhouette_score(x, labels, metric="euclidean")
+            plt.subplot(1, 6, position)
+            plt.title("Min_bin_freq={maxiter} Score={score}".format(maxiter=min_bin_freq[j], score=round(score, 3)))
+            position += 1
+
+            for cluster, pos in labeled:
+                if cluster == -1:
+                    # NOISE WITH COLOR BLACK
+                    plt.plot(pos.p1, pos.p2, marker='o', linestyle='', color='black')
+                else:
+                    plt.plot(pos.p1, pos.p2, marker='o', linestyle='')
+
+        plt.show()
+        """
+
+
 # Result printing function
-def print_result(x, y, i):
+def print_result(model_name, x, y, quantile):
     # Set the data for plotting a "median house value" distribution
-    labels_median_house_value = list(map(str, np.arange(0, i)))
-    labeled_median_house_value = pd.cut(medianHouseValue, i, labels=labels_median_house_value, include_lowest=True)
+    labels_median_house_value = list(map(str, np.arange(0, quantile)))
+    labeled_median_house_value = pd.cut(medianHouseValue, quantile, labels=labels_median_house_value, include_lowest=True)
     new_x = pd.concat([x, labeled_median_house_value], axis=1)
 
     # Plot the results of the clustering and "median house value" distribution
     fig, axes = plt.subplots(1, 2, figsize=(15, 15))
-    axes[0].set_title('Gaussian Mixture Model Clustering')
-    axes[0].set_xlabel(x.columns[0])
-    axes[0].set_ylabel(x.columns[1])
+    axes[0].set_title(model_name + 'Model Clustering')
+    axes[0].set_xlabel(x.columns[0] if x.columns[0] != 0 else 'x')
+    axes[0].set_ylabel(x.columns[1] if x.columns[1] != 1 else 'y')
     axes[0].scatter(x.iloc[:, 0], x.iloc[:, 1], c=y, s=40, cmap='viridis')
     axes[1].set_title('Median house value distribution')
-    axes[1].set_xlabel(x.columns[0])
-    axes[1].set_ylabel(x.columns[1])
+    axes[1].set_xlabel(x.columns[0] if x.columns[0] != 0 else 'x')
+    axes[1].set_ylabel(x.columns[1] if x.columns[1] != 1 else 'y')
     sns.scatterplot(ax=axes[1], data=new_x, x=new_x.iloc[:, 0], y=new_x.iloc[:, 1], hue='median_house_value')
     plt.show()
 
@@ -249,28 +358,55 @@ def print_result(x, y, i):
 ######################################################################################################
 # Read dataset
 df = pd.read_csv('housing.csv')
-# print(df.info())
-# print(df.head())
-# print(df.describe())
+print('Dateset info')
+print(df.info(), end='\n\n')
+print('Dateset head', df.head(), sep='\n', end='\n\n')
 
 # Dirty value detection
-# print(df.isnull().sum())
+print('Before preprocessing dirty values')
+print(df.isnull().sum(), end='\n\n')
 df.dropna(axis=0, inplace=True)
-# print(df.isnull().sum())
-# print(df.shape)
+print('After preprocessing dirty values')
+print(df.isnull().sum(), end='\n\n')
+print('Shape of the dataset')
+print(df.shape, end='\n\n')
 
-# ########## 임시 테스트용 ############
-# # Draw heat map
+# Drop the feature 'median_house_value'
+medianHouseValue = df['median_house_value']
+df.drop(['median_house_value'], axis=1, inplace=True)
+
+########## 임시 테스트용 ############
+# Encoding and Scaling the dataset
+df_encoded_scaled = encode_scale_temp(df, 'ocean_proximity')
+
+# Draw heat map
 # heatmap_data = df
 # colormap = plt.cm.PuBu
 # plt.figure(figsize=(15, 15))
 # plt.title("Correlation of Features", y=1.05, size=15)
 # sns.heatmap(heatmap_data.corr(), linewidths=0.1, square=False, cmap=colormap, linecolor="white",
 #             annot=True, annot_kws={"size": 8})
-# # plt.show()
-#
+# plt.show()
 
-# print("\n-------the result of CLARANS---------\n")
-# doCLARANS(df_encoded_scaled.values, 5)
+# Combinations of features
+col1 = ['total_rooms', 'total_bedrooms', 'population', 'households']
+col2 = ['total_rooms', 'households']
+col3 = ['longitude', 'latitude', 'ocean_proximity']
+col4 = ['median_income', 'households', 'total_rooms']
+col5 = ['latitude', 'total_rooms', 'households', 'median_income']
 
-auto_ml(df)
+# Dataframes with various combination
+df1 = df_encoded_scaled[col1]
+df2 = df_encoded_scaled[col2]
+df3 = df_encoded_scaled[col3]
+df4 = df_encoded_scaled[col4]
+df5 = df_encoded_scaled[col5]
+
+print("\n-------The result of CLARANS---------\n")
+test_kmeans(df3)
+
+# auto_ml(df1)
+# autoML(df2)
+# autoML(df3)
+# autoML(df4)
+# autoML(df5)
