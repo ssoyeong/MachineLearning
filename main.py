@@ -473,7 +473,7 @@ df5 = df_encoded_scaled[col5]
 # print("\n-------The result---------\n")
 # test_kmeans(df3)
 # test_gaussian(df3)
-# test_clarans(df3, 5, 5)
+# test_clarans(df3)
 # test_dbscan(df3)
 # test_mean_shift(df3)
 
