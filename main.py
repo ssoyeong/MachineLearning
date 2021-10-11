@@ -12,7 +12,8 @@ from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, LabelEncoder
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler, Normalizer
 from sklearn.cluster import KMeans, DBSCAN, MeanShift, estimate_bandwidth
 from sklearn.neighbors import NearestNeighbors
-from pyclustering.cluster import clarans, cluster_visualizer_multidim  # Modules for implementing CLARANS algorithm and plotting multi-dimensional data
+from pyclustering.cluster.clarans import clarans
+from pyclustering.cluster import cluster_visualizer_multidim  # Modules for implementing CLARANS algorithm and plotting multi-dimensional data
 from pyclustering.utils import timedcall                               # To execute a function with execution time recorded
 
 warnings.filterwarnings('ignore')
