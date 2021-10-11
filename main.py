@@ -43,8 +43,11 @@ def auto_ml(dataset):
     for combination in feature_combination_list.items():
         data_combination = scale_encode_combination(dataset, combination, ['ocean_proximity'])
         for data_name, data in data_combination:
+            test_kmeans(data)
             test_gaussian(data)
+            test_clarans(data)
             test_dbscan(data)
+            test_mean_shift(data)
 
 
 # Dataset scaling and encoding function
@@ -234,22 +237,40 @@ def test_gaussian(x):
     x = pd.DataFrame(pca.fit_transform(x))
 
     # Parameters
+    n_components = range(2, 12)
+    covariance_type = ['full', 'tied', 'diag', 'spherical']
     init_params = ['kmeans', 'random']
 
-    model_gaussian = GaussianMixture(4, init_params='random')
-    model_gaussian.fit(x)
-    y = model_gaussian.predict(x)
-    print_result('Gaussian Mixture', x, y, 5)
+    for n in n_components:
+        for covariance in covariance_type:
+            for init in init_params:
+                model_gaussian = GaussianMixture(n_components=n, covariance_type=covariance, init_params=init)
+                model_gaussian.fit(x)
+                y = model_gaussian.predict(x)
+                for q in range(4, 7):
+                    print_result('Gaussian Mixture', x, y, q)
 
-    """
-    for i in range(2, 12):
-        for j in init_params:
-            model_gaussian = GaussianMixture(i, init_params='random')
-            model_gaussian.fit(x)
-            y = model_gaussian.predict(x)
-            for k in range(4, 7):
-                print_result('Gaussian Mixture', x, y, k)
-    """
+
+# CLARANS
+def test_clarans(x, k, a):  # x: dataframe, k: num of cluster, a: feature name that want to look
+    h_data = x.values.tolist()
+    # clarans parameters:
+    # dataset, number of cluster, numlocal(amount of iterations for solving the problem), maxneighbor
+    clarans_obj = clarans(random.sample(h_data, 300), k, 3, 5)  # 프로그램 실행하는 데 풀 데이터를 사용하면 시간이 너무 오래 걸려서 random으로 300개 뽑아내는 걸로 바꿨습니다
+    (tks, res) = timedcall(clarans_obj.process)
+    print("Execution time : ", tks, "\n")
+    clst = clarans_obj.get_clusters()
+    med = clarans_obj.get_medoids()
+    print("Index of clusters' points :\n", clst)
+    print("\nIndex of the best medoids : ", med)
+    vis = cluster_visualizer_multidim()
+    vis.append_clusters(clst, h_data, markersize=5)
+    # Display the clusters formed in multiple dimensions
+    pair = []
+    for i in range(x.shape[1]):
+        pair.append([a, i])
+
+    vis.show(pair_filter=pair, max_row_size=3)
 
 
 # DBSCAN
@@ -304,29 +325,6 @@ def test_dbscan(x):
     print_result('DBSCAN', pd.DataFrame(x), y, 5)
 
 
-
-# CLARANS
-def test_clarans(x, k, a):  # x: dataframe, k: num of cluster, a: feature name that want to look
-    h_data = x.values.tolist()
-    # clarans parameters:
-    # dataset, number of cluster, numlocal(amount of iterations for solving the problem), maxneighbor
-    clarans_obj = clarans(random.sample(h_data, 300), k, 3, 5)  # 프로그램 실행하는 데 풀 데이터를 사용하면 시간이 너무 오래 걸려서 random으로 300개 뽑아내는 걸로 바꿨습니다
-    (tks, res) = timedcall(clarans_obj.process)
-    print("Execution time : ", tks, "\n")
-    clst = clarans_obj.get_clusters()
-    med = clarans_obj.get_medoids()
-    print("Index of clusters' points :\n", clst)
-    print("\nIndex of the best medoids : ", med)
-    vis = cluster_visualizer_multidim()
-    vis.append_clusters(clst, h_data, markersize=5)
-    # Display the clusters formed in multiple dimensions
-    pair = []
-    for i in range(x.shape[1]):
-        pair.append([a, i])
-
-    vis.show(pair_filter=pair, max_row_size=3)
-
-
 # Mean Shift
 def test_mean_shift(x):
     bin_seeding = [True, False]
@@ -338,9 +336,9 @@ def test_mean_shift(x):
     sample_list = [100, 1000, 5000, 10000]
 
     x = pca.fit_transform(x)
-    bandwidth=estimate_bandwidth(x)
+    bandwidth = estimate_bandwidth(x)
     model = MeanShift(bandwidth=bandwidth, cluster_all=True, max_iter=max_iter[2], min_bin_freq=min_bin_freq[2])
-    x=pd.DataFrame(x)
+    x = pd.DataFrame(x)
     model.fit(x)
     y = model.predict(x)
     print_result('Mean Shift', x, y, 5)
@@ -427,6 +425,10 @@ df.dropna(axis=0, inplace=True)
 medianHouseValue = df['median_house_value']
 df.drop(['median_house_value'], axis=1, inplace=True)
 
+# Test all combinations
+# auto_ml(df)
+
+
 ########## 임시 테스트용 ############
 # Encoding and Scaling the dataset
 df_encoded_scaled = encode_scale_temp(df, 'ocean_proximity')
@@ -453,13 +455,10 @@ df2 = df_encoded_scaled[col2]
 df3 = df_encoded_scaled[col3]
 df4 = df_encoded_scaled[col4]
 df5 = df_encoded_scaled[col5]
-#
-# print("\n-------The result of CLARANS---------\n")
+
+# print("\n-------The result---------\n")
 # test_kmeans(df3)
-# test_clarans(df_encoded_scaled, 5, 5)
-# test_mean_shift(df2)
-# auto_ml(df)
-# autoML(df2)
-# autoML(df3)
-# autoML(df4)
-# autoML(df5)
+# test_gaussian(df3)
+# test_clarans(df3, 5, 5)
+# test_dbscan(df3)
+# test_mean_shift(df3)
