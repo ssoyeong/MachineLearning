@@ -200,9 +200,9 @@ def test_kmeans(x):
 
         # SUBPLOT POSITION
         position = 1
-        for j in range(0, len(max_iter)):
+        for j in range(0, len(algorithm)):
             x = pca.fit_transform(x)
-            model = KMeans(random_state=0, n_clusters=n_clusters[i], init='k-means++', max_iter=max_iter[j])
+            model = KMeans(random_state=0, n_clusters=n_clusters[i], init='k-means++', max_iter=max_iter[2],algorithm=algorithm[j])
             model.fit(x)
             label = model.labels_
 
@@ -213,8 +213,8 @@ def test_kmeans(x):
             labeled = k1.groupby("cluster")
             score = silhouette_score(x, label, metric="euclidean")
 
-            plt.subplot(1, 5, position)
-            plt.title("MAX_ITER={maxiter}Score={score}".format(maxiter=max_iter[j],score=round(score,3)))
+            plt.subplot(1, 3, position)
+            plt.title("Algorithm={algo}Score={score}".format(algo=algorithm[j],score=round(score,3)))
             position += 1
 
             for cluster, pos in labeled:
@@ -338,7 +338,9 @@ def test_mean_shift(x):
     sample_list = [100, 1000, 5000, 10000]
 
     x = pca.fit_transform(x)
-    model = MeanShift(bandwidth=100, cluster_all=True, max_iter=max_iter[2], min_bin_freq=min_bin_freq[2])
+    bandwidth=estimate_bandwidth(x)
+    model = MeanShift(bandwidth=bandwidth, cluster_all=True, max_iter=max_iter[2], min_bin_freq=min_bin_freq[2])
+    x=pd.DataFrame(x)
     model.fit(x)
     y = model.predict(x)
     print_result('Mean Shift', x, y, 5)
@@ -455,7 +457,7 @@ df5 = df_encoded_scaled[col5]
 # print("\n-------The result of CLARANS---------\n")
 # test_kmeans(df3)
 # test_clarans(df_encoded_scaled, 5, 5)
-
+# test_mean_shift(df2)
 # auto_ml(df)
 # autoML(df2)
 # autoML(df3)
