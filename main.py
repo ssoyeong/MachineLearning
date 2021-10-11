@@ -44,14 +44,16 @@ def auto_ml(dataset):
     #
     for combination in feature_combination_list:
         data_combination = scale_encode_combination(dataset, combination, ['ocean_proximity'])
-        print(data_combination)
-        for data_name, data in data_combination:
-            print()
-            # test_kmeans(data)
-            # test_gaussian(data)
-            # test_clarans(data)
-            # test_dbscan(data)
-            # test_mean_shift(data)
+
+        # Use one of the scale_encode_combination datasets
+        data = data_combination['minmax_ordinal']
+        data = data[combination]
+
+        # test_kmeans(data)
+        # test_gaussian(data)
+        # test_clarans(data)
+        # test_dbscan(data)
+        # test_mean_shift(data)
 
 
 # Dataset scaling and encoding function
@@ -471,3 +473,5 @@ df5 = df_encoded_scaled[col5]
 # test_clarans(df3, 5, 5)
 # test_dbscan(df3)
 # test_mean_shift(df3)
+
+# auto_ml(df)
