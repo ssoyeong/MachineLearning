@@ -9,7 +9,10 @@ from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, LabelEncoder
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler, Normalizer
 from pyclustering.cluster.clarans import clarans  #Class for implementing CLARANS algorithm
 from pyclustering.utils import timedcall          #To execute a function with execution time recorded
-
+from sklearn.cluster import MeanShift, estimate_bandwidth
+from sklearn.decomposition import PCA
+from sklearn.cluster import estimate_bandwidth
+from sklearn.cluster import KMeans
 warnings.filterwarnings('ignore')
 
 medianHouseValue = []
