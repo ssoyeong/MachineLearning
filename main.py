@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, Ma
 from sklearn.cluster import KMeans, DBSCAN, MeanShift, estimate_bandwidth
 from pyclustering.cluster.clarans import clarans  # Class for implementing CLARANS algorithm
 from pyclustering.utils import timedcall          # To execute a function with execution time recorded
-
+from sklearn.neighbors import NearestNeighbors
 warnings.filterwarnings('ignore')
 medianHouseValue = []
 
@@ -37,9 +37,9 @@ def auto_ml(dataset):
         data_combination = scale_encode_combination(dataset, combination, ['ocean_proximity'])
         for data in data_combination:
             # TODO: 인코딩 & 스케일링 확인
-            # print(data.head(10))
-            test_gaussian(data)
-            test_dbscan(data)
+            print(data.head(10))
+            # test_gaussian(data)
+            # test_dbscan(data)
 
 
 # Dataset scaling and encoding function
@@ -73,16 +73,16 @@ def scale_encode_combination(dataset, numerical_feature_list, categorical_featur
                 result[i][numerical_feature_list] = scaler.fit_transform(dataset[numerical_feature_list])
             elif len(categorical_feature_list) != 0:
                 result[i][categorical_feature_list] = encoder.fit_transform(dataset[categorical_feature_list])
-            for k in [3, 5, 10]:
-                # save in dictionary
-                dataset_type = scalers_name[int(i / 2)] + "_" + encoders_name[i % 2]
-                result_dict[dataset_type] = result[i]
-
-                # EM(GMM) test
-                test_gaussian()
-                print_result()
-
-            i = i + 1
+            # for k in [3, 5, 10]:
+            #     # save in dictionary
+            #     dataset_type = scalers_name[int(i / 2)] + "_" + encoders_name[i % 2]
+            #     result_dict[dataset_type] = result[i]
+            #
+            #     # EM(GMM) test
+            #     test_gaussian()
+            #     print_result()
+            #
+            # i = i + 1
 
     return result
 
@@ -242,16 +242,20 @@ def test_gaussian(x):
 
 # DBSCAN
 def test_dbscan(x):
+
     # PCA
     pca = PCA(n_components=2)
     principalComponents = pca.fit_transform(x)
     df_new = pd.DataFrame(data=principalComponents, columns=['principal component 1', 'principal component 2'])
 
     # Parameters of DBSCAN
-    eps = [0.05, 0.1, 0.5, 1, 2]
-    min_samples = [5, 10, 15, 30, 50, 100]
-
+    # eps = [0.05, 0.1, 0.5, 1, 2]
+    # min_samples = [5, 10, 15, 30, 50, 100]
+    eps = [0.05, 0.1]
+    min_samples = [5, 10]
+    '''
     for i in range(len(min_samples)):
+        plt.figure(figsize=(10, 5))
         for j in range(len(eps)):
             dbscan = DBSCAN(min_samples=min_samples[i], eps=eps[j])
             clusters = dbscan.fit_predict(df_new)
@@ -269,6 +273,24 @@ def test_dbscan(x):
                             hspace=0.4)
         plt.suptitle("DBSCAN: min_samples = {}".format(min_samples[i]))
         plt.savefig('./DBSCAN/dbscan_minsamples_' + str(min_samples[i]) + '.png', dpi=300)
+    '''
+    neigh = NearestNeighbors(n_neighbors=50)
+    neigh_fit = neigh.fit(df_new)
+    distances, indices = neigh_fit.kneighbors(df_new)
+
+    # Elbow method
+    distances = np.sort(distances, axis=0)
+    distances = distances[:, 1]
+    plt.plot(distances)
+    plt.title("Knee method of DBSCAN determining min_samples")
+    plt.show()
+
+    # Print result
+    x = pca.fit_transform(x)
+    dbscan = DBSCAN(min_samples=50)
+    y = dbscan.fit_predict(x)
+    print_result('DBSCAN', pd.DataFrame(x), y, 5)
+
 
 
 # CLARANS
@@ -365,18 +387,18 @@ def print_result(model_name, x, y, quantile):
 ######################################################################################################
 # Read dataset
 df = pd.read_csv('housing.csv')
-print('Dateset info')
-print(df.info(), end='\n\n')
-print('Dateset head', df.head(), sep='\n', end='\n\n')
+# print('Dateset info')
+# print(df.info(), end='\n\n')
+# print('Dateset head', df.head(), sep='\n', end='\n\n')
 
 # Dirty value detection
-print('Before preprocessing dirty values')
-print(df.isnull().sum(), end='\n\n')
+# print('Before preprocessing dirty values')
+# print(df.isnull().sum(), end='\n\n')
 df.dropna(axis=0, inplace=True)
-print('After preprocessing dirty values')
-print(df.isnull().sum(), end='\n\n')
-print('Shape of the dataset')
-print(df.shape, end='\n\n')
+# print('After preprocessing dirty values')
+# print(df.isnull().sum(), end='\n\n')
+# print('Shape of the dataset')
+# print(df.shape, end='\n\n')
 
 # Drop the feature 'median_house_value'
 medianHouseValue = df['median_house_value']
@@ -408,12 +430,14 @@ df2 = df_encoded_scaled[col2]
 df3 = df_encoded_scaled[col3]
 df4 = df_encoded_scaled[col4]
 df5 = df_encoded_scaled[col5]
+#
+# print("\n-------The result of CLARANS---------\n")
+# test_kmeans(df3)
 
-print("\n-------The result of CLARANS---------\n")
-test_kmeans(df3)
-
-auto_ml(df1)
+# auto_ml(df)
 # autoML(df2)
 # autoML(df3)
 # autoML(df4)
 # autoML(df5)
+
+test_dbscan(df3)
