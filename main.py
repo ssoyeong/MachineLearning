@@ -12,6 +12,7 @@ from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, LabelEncoder
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler, Normalizer
 from sklearn.cluster import KMeans, DBSCAN, MeanShift, estimate_bandwidth
 from sklearn.neighbors import NearestNeighbors
+from sklearn.metrics import confusion_matrix
 from pyclustering.cluster.clarans import clarans
 from pyclustering.cluster import cluster_visualizer_multidim  # Modules for implementing CLARANS algorithm and plotting multi-dimensional data
 from pyclustering.utils import timedcall                               # To execute a function with execution time recorded
@@ -36,19 +37,21 @@ def auto_ml(dataset):
         feature_combination_list.append(selected_features)
 
     # TODO: 테스트해보면 출력 잘되는거 볼 수 있으실 거예요
-    print("=> combination dataset! (15 types)")
-    data_combination = scale_encode_combination(dataset, ['total_rooms', 'households'], ['ocean_proximity'])
-    pp(data_combination)
-    test_gaussian(data_combination['standard_ordinal'])
-
-    for combination in feature_combination_list.items():
+    # print("=> combination dataset! (15 types)")
+    # data_combination = scale_encode_combination(dataset, ['total_rooms', 'households'], ['ocean_proximity'])
+    # pp(data_combination)
+    # test_gaussian(data_combination['standard_ordinal'])
+    #
+    for combination in feature_combination_list:
         data_combination = scale_encode_combination(dataset, combination, ['ocean_proximity'])
+        print(data_combination)
         for data_name, data in data_combination:
-            test_kmeans(data)
-            test_gaussian(data)
-            test_clarans(data)
-            test_dbscan(data)
-            test_mean_shift(data)
+            print()
+            # test_kmeans(data)
+            # test_gaussian(data)
+            # test_clarans(data)
+            # test_dbscan(data)
+            # test_mean_shift(data)
 
 
 # Dataset scaling and encoding function
@@ -92,6 +95,15 @@ def scale_encode_combination(dataset, numerical_feature_list, categorical_featur
             k = k + 1
 
     return result_dict
+
+
+def purity_score(y_true, y_pred):
+
+    # compute confusion matrix
+    cf_matrix = confusion_matrix(y_true, y_pred)
+
+    # return purity
+    return np.sum(np.amax(cf_matrix, axis=0)) / np.sum(cf_matrix)
 
 
 def encode_scale_temp(dataframe, col):
@@ -276,27 +288,27 @@ def test_clarans(x, k, a):  # x: dataframe, k: num of cluster, a: feature name t
 
 # DBSCAN
 def test_dbscan(x):
-
-    # PCA
     pca = PCA(n_components=2)
-    principalComponents = pca.fit_transform(x)
-    df_new = pd.DataFrame(data=principalComponents, columns=['principal component 1', 'principal component 2'])
+    df_new = pd.DataFrame(pca.fit_transform(x))
 
     # Parameters of DBSCAN
-    # eps = [0.05, 0.1, 0.5, 1, 2]
-    # min_samples = [5, 10, 15, 30, 50, 100]
-    eps = [0.05, 0.1]
-    min_samples = [5, 10]
-    '''
+    eps = [0.05, 0.1, 0.5, 1, 2]
+    min_samples = [5, 30, 500]
+
     for i in range(len(min_samples)):
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=(25, 5))
         for j in range(len(eps)):
             dbscan = DBSCAN(min_samples=min_samples[i], eps=eps[j])
-            clusters = dbscan.fit_predict(df_new)
+            y = dbscan.fit_predict(df_new)
 
-            # Show scatter
+            # Plotting the results comparing with 'Median house value'
+            for q in range(6, 7):
+                title = 'DBSCAN(MinPts:' + str(min_samples[i]) + ', Eps:' + str(eps[j]) + ', q:' + str(q) + ')'
+                print_result(title, df_new, y, q)
+
+            # Plotting the results of clustering
             plt.subplot(1, len(eps), j + 1)
-            plt.scatter(df_new.iloc[:, 0], df_new.iloc[:, 1], c=clusters, alpha=0.7)
+            plt.scatter(df_new.iloc[:, 0], df_new.iloc[:, 1], c=y, alpha=0.7)
             plt.title("eps = {:.2f}".format(eps[j]))
 
         plt.subplots_adjust(left=0.1,
@@ -307,23 +319,19 @@ def test_dbscan(x):
                             hspace=0.4)
         plt.suptitle("DBSCAN: min_samples = {}".format(min_samples[i]))
         plt.savefig('./DBSCAN/dbscan_minsamples_' + str(min_samples[i]) + '.png', dpi=300)
-    '''
-    neigh = NearestNeighbors(n_neighbors=50)
+
+    neigh = NearestNeighbors(n_neighbors=15000)
     neigh_fit = neigh.fit(df_new)
     distances, indices = neigh_fit.kneighbors(df_new)
 
-    # Elbow method
+    # Knee method
     distances = np.sort(distances, axis=0)
     distances = distances[:, 1]
     plt.plot(distances)
     plt.title("Knee method of DBSCAN determining min_samples")
     plt.show()
 
-    # Print result
-    x = pca.fit_transform(x)
-    dbscan = DBSCAN(min_samples=50)
-    y = dbscan.fit_predict(x)
-    print_result('DBSCAN', pd.DataFrame(x), y, 5)
+
 
 
 # Mean Shift
@@ -402,8 +410,8 @@ def print_result(model_name, x, y, quantile):
     plt.show()
 
     # Print the measurement results using Silhouette, knee, and purity
-    silhouette_score(x, y, metric='euclidean')
-    silhouette_score(x, y, metric='manhattan')
+    # silhouette_score(x, y, metric='euclidean')
+    # silhouette_score(x, y, metric='manhattan')
 
 
 ######################################################################################################
