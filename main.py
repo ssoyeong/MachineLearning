@@ -267,25 +267,28 @@ def test_gaussian(x):
 
 
 # CLARANS
-def test_clarans(x, k, a):  # x: dataframe, k: num of cluster, a: feature name that want to look
-    h_data = x.values.tolist()
-    # clarans parameters:
-    # dataset, number of cluster, numlocal(amount of iterations for solving the problem), maxneighbor
-    clarans_obj = clarans(random.sample(h_data, 300), k, 3, 5)  # 프로그램 실행하는 데 풀 데이터를 사용하면 시간이 너무 오래 걸려서 random으로 300개 뽑아내는 걸로 바꿨습니다
-    (tks, res) = timedcall(clarans_obj.process)
-    print("Execution time : ", tks, "\n")
-    clst = clarans_obj.get_clusters()
-    med = clarans_obj.get_medoids()
-    print("Index of clusters' points :\n", clst)
-    print("\nIndex of the best medoids : ", med)
-    vis = cluster_visualizer_multidim()
-    vis.append_clusters(clst, h_data, markersize=5)
-    # Display the clusters formed in multiple dimensions
-    pair = []
-    for i in range(x.shape[1]):
-        pair.append([a, i])
+def test_clarans(x):
+    pca = PCA(n_components=2)
+    x = pd.DataFrame(pca.fit_transform(x))
 
-    vis.show(pair_filter=pair, max_row_size=3)
+    # Parameters
+    h_data = x.values.tolist()
+    number_clusters = range(2, 12)
+    numlocal = 2
+    maxneighbor = 3
+
+    for n in number_clusters:
+        # h_data = random.sample(h_data, 100)
+        clarans_obj = clarans(h_data, number_clusters=n, numlocal=numlocal, maxneighbor=maxneighbor)
+        (tks, res) = timedcall(clarans_obj.process)
+        print("number of clusters: {}, Execution time : {}\n".format(n, tks))
+        clusters = clarans_obj.get_clusters()
+        num = len(h_data)
+        y = np.zeros(num, dtype=int).tolist()
+        for cluster_no in range(np.shape(clusters)[0]):
+            for idx in clusters[cluster_no]:
+                y[idx] = cluster_no
+        print_result('CLARANS', x, y, 5)
 
 
 # DBSCAN
