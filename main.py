@@ -7,6 +7,7 @@ from sklearn.mixture import GaussianMixture
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, LabelEncoder
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler, Normalizer
+from sklearn.cluster import DBSCAN
 from pyclustering.cluster.clarans import clarans  #Class for implementing CLARANS algorithm
 from pyclustering.utils import timedcall          #To execute a function with execution time recorded
 from sklearn.cluster import MeanShift, estimate_bandwidth
@@ -20,14 +21,17 @@ medianHouseValue = []
 
 def auto_ml(dataset):
     feature_combination_list = []
+
     # TODO: 여기서 feature combination 자동으로 만들어서
     # TODO: 위에 리스트에 넣어주는 코드 짜야할 것 같아요
 
     for combination in feature_combination_list:
         data_combination = encode_scale_combination(dataset, combination, ['ocean_proximity'])
         for data in data_combination:
+            # print(data.head(10))
             test_gaussian(data)
             doDBSCAN(data)
+
 
 def encode_scale_combination(dataset, numerical_feature_list, categorical_feature_list):
     # encoders
@@ -72,75 +76,7 @@ def encode_scale_combination(dataset, numerical_feature_list, categorical_featur
 
     return result
 
-def encode_scale_temp(dataframe, col):
-    # Encode the dataset
-    df_ordinal = dataframe.copy()
-    df_label = dataframe.copy()
 
-    X = pd.DataFrame(df[col])
-    # Convert categorical features to numeric values using ordinalEncoder
-    ordinalEncoder = OrdinalEncoder()
-    ordinalEncoder.fit(X)
-    df_ordinal[col] = ordinalEncoder.transform(X)
-    print(df_ordinal.isna().sum())
-
-    # Convert categorical features to numeric values using labelEncoder
-    labelEncoder = LabelEncoder()
-    labelEncoder.fit(X)
-    df_label[col] = labelEncoder.transform(X)
-    print(df_label.isna().sum())
-
-    # Scaling the dataset
-    df_ordinal_standard = df_ordinal.copy()
-    df_ordinal_robust = df_ordinal.copy()
-    df_ordinal_minmax = df_ordinal.copy()
-    df_ordinal_maxabs = df_ordinal.copy()
-    df_label_standard = df_label.copy()
-    df_label_robust = df_label.copy()
-    df_label_minmax = df_label.copy()
-    df_label_maxabs = df_label.copy()
-
-    # Scaling the dataset using StandardScaler
-    scaler = StandardScaler()
-    df_ordinal_standard = scaler.fit_transform(df_ordinal)
-    df_ordinal_standard = pd.DataFrame(df_ordinal_standard, columns=df_ordinal.columns)
-    df_label_standard = scaler.fit_transform(df_label)
-    df_label_standard = pd.DataFrame(df_label_standard, columns=df_label.columns)
-
-    # Scaling the dataset using RobustScaler
-    scaler = RobustScaler()
-    df_ordinal_robust = scaler.fit_transform(df_ordinal)
-    df_ordinal_robust = pd.DataFrame(df_ordinal_robust, columns=df_ordinal.columns)
-    df_label_robust = scaler.fit_transform(df_label)
-    df_label_robust = pd.DataFrame(df_label_robust, columns=df_label.columns)
-
-    # Scaling the dataset using MinMaxScaler
-    scaler = MinMaxScaler()
-    df_ordinal_minmax = scaler.fit_transform(df_ordinal)
-    df_ordinal_minmax = pd.DataFrame(df_ordinal_minmax, columns=df_ordinal.columns)
-    df_label_minmax = scaler.fit_transform(df_label)
-    df_label_minmax = pd.DataFrame(df_label_minmax, columns=df_label.columns)
-
-    # Scaling the dataset using MaxAbsScaler
-    scaler = MaxAbsScaler()
-    df_ordinal_maxabs = scaler.fit_transform(df_ordinal)
-    df_ordinal_maxabs = pd.DataFrame(df_ordinal_maxabs, columns=df_ordinal.columns)
-    df_label_maxabs = scaler.fit_transform(df_label)
-    df_label_maxabs = pd.DataFrame(df_label_maxabs, columns=df_label.columns)
-
-    # Show the results using OrdinalEncoder and MinMaxScaler
-    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(15, 15))
-    ax1.set_title('Before Scaling the OrdinalEncoded dataset')
-    ax2.set_title('After MinMax Scaling the OrdinalEncoded dataset')
-
-    for i in df_ordinal_minmax.columns:
-        sns.kdeplot(df_ordinal[i], ax=ax1)
-        sns.kdeplot(df_ordinal_minmax[i], ax=ax2)
-
-    # plt.show()
-
-    # Return the one of the encoded and scaled datasets
-    return df_ordinal_minmax
 def doKmeans(X):
     pca=PCA(n_components=2)
     n_clusters=[2,3,4,5,6,7,8]
@@ -188,6 +124,8 @@ def doKmeans(X):
         plt.subplots_adjust(wspace=0.4, hspace=0.4)
         plt.suptitle("K-Means: N_CLUSTERS={0}".format(n_clusters[i]))
         plt.show()
+
+
 def domeanShift(X):
     bin_seeding=[True,False]
     min_bin_freq=[1,3,5,7,9,11]
@@ -236,7 +174,34 @@ def test_gaussian(x):
 
 
 def doDBSCAN(dataset):
-    print(dataset)
+    # PCA
+    pca = PCA(n_components=2)
+    principalComponents = pca.fit_transform(dataset)
+    df_new = pd.DataFrame(data=principalComponents, columns=['principal component 1', 'principal component 2'])
+
+    # Parameters of DBSCAN
+    eps = [0.05, 0.1, 0.5, 1, 2]
+    min_samples = [5, 10, 15, 30, 50, 100]
+
+    for i in range(len(min_samples)):
+        for j in range(len(eps)):
+            dbscan = DBSCAN(min_samples=min_samples[i], eps=eps[j])
+            clusters = dbscan.fit_predict(df_new)
+
+            # Show scatter
+            plt.subplot(1, len(eps), j + 1)
+            plt.scatter(df_new.iloc[:, 0], df_new.iloc[:, 1], c=clusters, alpha=0.7)
+            plt.title("eps = {:.2f}".format(eps[j]))
+
+        plt.subplots_adjust(left=0.1,
+                            bottom=0.1,
+                            right=0.95,
+                            top=0.8,
+                            wspace=0.4,
+                            hspace=0.4)
+        plt.suptitle("DBSCAN: min_samples = {}".format(min_samples[i]))
+        plt.savefig('./DBSCAN/dbscan_minsamples_' + str(min_samples[i]) + '.png', dpi=300)
+
 
 def doCLARANS(dataset, k):
     h_data = dataset.tolist()
@@ -248,6 +213,7 @@ def doCLARANS(dataset, k):
     med = clarans_obj.get_medoids()
     print("Index of clusters' points :\n", clst)
     print("\nIndex of the best medoids : ", med)
+
 
 # Result printing function
 def print_result(x, y, i):
@@ -280,54 +246,23 @@ df = pd.read_csv('housing.csv')
 # print(df.describe())
 
 # Dirty value detection
-print(df.isnull().sum())
+# print(df.isnull().sum())
 df.dropna(axis=0, inplace=True)
-print(df.isnull().sum())
+# print(df.isnull().sum())
 # print(df.shape)
 
-########## 임시 테스트용 ############
+# ########## 임시 테스트용 ############
+# # Draw heat map
+# heatmap_data = df
+# colormap = plt.cm.PuBu
+# plt.figure(figsize=(15, 15))
+# plt.title("Correlation of Features", y=1.05, size=15)
+# sns.heatmap(heatmap_data.corr(), linewidths=0.1, square=False, cmap=colormap, linecolor="white",
+#             annot=True, annot_kws={"size": 8})
+# # plt.show()
+#
 
-# Encoding and Scaling the dataset
-df_encoded_scaled = encode_scale_temp(df, 'ocean_proximity')
+# print("\n-------the result of CLARANS---------\n")
+# doCLARANS(df_encoded_scaled.values, 5)
 
-# Draw heat map
-heatmap_data = df
-colormap = plt.cm.PuBu
-plt.figure(figsize=(15, 15))
-plt.title("Correlation of Features", y=1.05, size=15)
-sns.heatmap(heatmap_data.corr(), linewidths=0.1, square=False, cmap=colormap, linecolor="white",
-            annot=True, annot_kws={"size": 8})
-# plt.show()
-
-# Feature selection
-df_median_house_value = df_encoded_scaled['median_house_value']
-df_median_house_value.columns = ['median_house_value']
-
-# Combinations of features
-# TODO: 일단 제 마음대로 했는데 바꾸셔도 돼요
-col1 = ['total_rooms', 'total_bedrooms', 'population', 'households']
-col2 = ['total_rooms', 'households']
-col3 = ['longitude', 'latitude', 'ocean_proximity']
-col4 = ['median_income', 'households', 'total_rooms']
-col5 = ['latitude', 'total_rooms', 'households', 'median_income']
-
-# Make dataframes with various combination
-df1 = df_encoded_scaled[col1]
-df1.columns = col1
-df2 = df_encoded_scaled[col2]
-df2.columns = col2
-df3 = df_encoded_scaled[col3]
-df3.columns = col3
-df4 = df_encoded_scaled[col4]
-df4.columns = col4
-df5 = df_encoded_scaled[col5]
-df5.columns = col5
-
-print("\n-------the result of CLARANS---------\n")
-doCLARANS(df_encoded_scaled.values, 5)
-
-auto_ml(df1)
-# autoML(df2)
-# autoML(df3)
-# autoML(df4)
-# autoML(df5)
+auto_ml(df)
