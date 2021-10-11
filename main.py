@@ -138,6 +138,89 @@ def encode_scale_temp(dataframe, col):
 
     # Return the one of the encoded and scaled datasets
     return df_ordinal_minmax
+def doKmeans(X):
+    pca=PCA(n_components=2)
+    n_clusters=[2,3,4,5,6,7,8]
+    init=['k-means++','random']
+    n_init=[10,20,30,40,50]
+    max_iter=[100,300,500,700,900]
+    algorithm=['auto','full','elkan']
+    distortions = []
+    # elbow method
+    for k in range(2, 9):
+        kmeans = KMeans(n_clusters=k)
+        kmeans.fit(X)
+        distortions.append(kmeans.inertia_)
+    fig = plt.figure(figsize=(10, 5))
+    plt.plot(range(2, 9), distortions)
+    plt.grid(True)
+    plt.title('Elbow curve')
+    plt.show()
+    list={}
+    for i in range(0,len(n_clusters)):
+        plt.figure(figsize=(16, 4))
+        plt.rc("font",size=5)
+        # SUBPLOT POSITION
+        position = 1
+        for j in range(0, len(max_iter)):
+                    X=pca.fit_transform(X)
+                    model = KMeans(random_state=0,n_clusters=n_clusters[i],init='k-means++',max_iter=max_iter[j])
+                    model.fit(X)
+                    label=model.labels_
+                    cluster_id=pd.DataFrame(label)
+                    kx=pd.DataFrame(X)
+                    k1=pd.concat([kx,cluster_id],axis=1)
+                    k1.columns=['p1','p2',"cluster"]
+                    labeled=k1.groupby("cluster")
+                    plt.subplot(1, 5, position)
+                    score = silhouette_score(X, label, metric="euclidean")
+                    plt.title("MAX_ITER={maxiter}Score={score}".format(maxiter=max_iter[j],score=round(score,3)))
+                    for cluster, pos in labeled:
+                        if cluster == -1:
+                            # NOISE WITH COLOR BLACK
+                            plt.plot(pos.p1, pos.p2, marker='o', linestyle='', color='black')
+                        else:
+                            plt.plot(pos.p1, pos.p2, marker='o', linestyle='')
+                    position += 1
+        plt.subplots_adjust(wspace=0.4, hspace=0.4)
+        plt.suptitle("K-Means: N_CLUSTERS={0}".format(n_clusters[i]))
+        plt.show()
+def domeanShift(X):
+    bin_seeding=[True,False]
+    min_bin_freq=[1,3,5,7,9,11]
+    cluster_all=[True, False]
+    n_jobs:[1,10,100,1000,2000]
+    max_iter=[100,300,500,700, 900,1000]
+    pca = PCA(n_components=2)
+    sampleList=[100,1000,5000,10000]
+    for i in range(0,len(sampleList)):
+        bandwidth=estimate_bandwidth(X,n_samples=sampleList[i])
+        plt.figure(figsize=(16, 4))
+        plt.rc("font", size=5)
+        position = 1
+        for j in range(0, len(min_bin_freq)):
+            model=MeanShift(bandwidth=bandwidth, cluster_all=True,max_iter=max_iter[2],min_bin_freq=min_bin_freq[j])
+            X=pca.fit_transform(X)
+            model.fit(X)
+            labels=model.labels_
+            cluster_id = pd.DataFrame(labels)
+            kx = pd.DataFrame(X)
+            k1 = pd.concat([kx, cluster_id], axis=1)
+            k1.columns = ['p1', 'p2', "cluster"]
+            labeled = k1.groupby("cluster")
+            plt.subplot(1, 6, position)
+            score = silhouette_score(X, labels, metric="euclidean")
+            plt.title("Min_bin_freq={maxiter} Score={score}".format(maxiter=min_bin_freq[j], score=round(score, 3)))
+            for cluster, pos in labeled:
+                if cluster == -1:
+                    # NOISE WITH COLOR BLACK
+                    plt.plot(pos.p1, pos.p2, marker='o', linestyle='', color='black')
+                else:
+                    plt.plot(pos.p1, pos.p2, marker='o', linestyle='')
+            position += 1
+        plt.subplots_adjust(wspace=0.4, hspace=0.4)
+        plt.suptitle("MeansShift: N_samples={0}".format(sampleList[i]))
+        plt.show()
 
 
 # EM(GMM)
