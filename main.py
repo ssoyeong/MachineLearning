@@ -7,6 +7,8 @@ from sklearn.mixture import GaussianMixture
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, LabelEncoder
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler, Normalizer
+from pyclustering.cluster.clarans import clarans  #Class for implementing CLARANS algorithm
+from pyclustering.utils import timedcall          #To execute a function with execution time recorded
 
 warnings.filterwarnings('ignore')
 
@@ -150,6 +152,16 @@ def test_gaussian(x):
 def doDBSCAN(dataset):
     print(dataset)
 
+def doCLARANS(dataset, k):
+    h_data = dataset.tolist()
+    # clarans(dataset, number of cluster, numlocal(amount of iterations for solving the problem, maxneighbor)
+    clarans_obj = clarans(h_data[0:50], k, 3, 5)  # 프로그램 실행하는 데 풀 데이터를 사용하면 시간이 너무 오래 걸려서 그냥 예시로 데이터 셋 50개만 해봤어요! 바꾸셔도 되요!
+    (tks, res) = timedcall(clarans_obj.process)
+    print("Execution time : ", tks, "\n")
+    clst = clarans_obj.get_clusters()
+    med = clarans_obj.get_medoids()
+    print("Index of clusters' points :\n", clst)
+    print("\nIndex of the best medoids : ", med)
 
 # Result printing function
 def print_result(x, y, i):
@@ -224,6 +236,9 @@ df4 = df_encoded_scaled[col4]
 df4.columns = col4
 df5 = df_encoded_scaled[col5]
 df5.columns = col5
+
+print("\n-------the result of CLARANS---------\n")
+doCLARANS(df_encoded_scaled.values, 5)
 
 auto_ml(df1)
 # autoML(df2)
