@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, Ma
 from sklearn.cluster import KMeans, DBSCAN, MeanShift, estimate_bandwidth
 from pyclustering.cluster.clarans import clarans  # Class for implementing CLARANS algorithm
 from pyclustering.utils import timedcall          # To execute a function with execution time recorded
+from pyclustering.cluster import cluster_visualizer_multidim  # Class for plotting multi-dimensional data
 from sklearn.neighbors import NearestNeighbors
 warnings.filterwarnings('ignore')
 medianHouseValue = []
@@ -294,17 +295,26 @@ def test_dbscan(x):
 
 
 # CLARANS
-def test_clarans(x, k):
-    h_data = x.tolist()
+def test_clarans(x, k, a):  # x: dataframe, k: num of cluster, a: feature name that want to look
+    h_data = x.values.tolist()
     # clarans parameters:
     # dataset, number of cluster, numlocal(amount of iterations for solving the problem), maxneighbor
-    clarans_obj = clarans(h_data[0:50], k, 3, 5)  # 프로그램 실행하는 데 풀 데이터를 사용하면 시간이 너무 오래 걸려서 그냥 예시로 데이터 셋 50개만 해봤어요! 바꾸셔도 되요!
+    clarans_obj = clarans(random.sample(h_data, 300), k, 3,
+                          5)  # 프로그램 실행하는 데 풀 데이터를 사용하면 시간이 너무 오래 걸려서 random으로 300개 뽑아내는 걸로 바꿨습니다
     (tks, res) = timedcall(clarans_obj.process)
     print("Execution time : ", tks, "\n")
     clst = clarans_obj.get_clusters()
     med = clarans_obj.get_medoids()
     print("Index of clusters' points :\n", clst)
     print("\nIndex of the best medoids : ", med)
+    vis = cluster_visualizer_multidim()
+    vis.append_clusters(clst, h_data, markersize=5)
+    # Display the clusters formed in multiple dimensions
+    pair = []
+    for i in range(x.shape[1]):
+        pair.append([a, i])
+
+    vis.show(pair_filter=pair, max_row_size=3)
 
 
 # Mean Shift
@@ -433,6 +443,7 @@ df5 = df_encoded_scaled[col5]
 #
 # print("\n-------The result of CLARANS---------\n")
 # test_kmeans(df3)
+# test_clarans(df_encoded_scaled, 5, 5)
 
 # auto_ml(df)
 # autoML(df2)
