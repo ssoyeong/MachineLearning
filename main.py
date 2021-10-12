@@ -135,8 +135,8 @@ def test_clarans(x):
     # Parameters
     h_data = x.values.tolist()
     number_clusters = range(2, 12)
-    numlocal = 2
-    maxneighbor = 3
+    numlocal = 1
+    maxneighbor = 1
 
     for n in number_clusters:
         # h_data = random.sample(h_data, 100)
