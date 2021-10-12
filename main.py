@@ -23,21 +23,20 @@ medianHouseValue = []
 # various subsets of the features of the dataset,
 # various model parameters values, and
 # various hyperparameters values.
-def auto_ml(dataset):
+def auto_ml(dataset, model):
     # TODO: Minmax scaled & Ordinal encoded 데이터 사용 테스트용입니다.
     # TODO: Feature 조합 선택하시고 사용할 데이터와 함수 주석 해제하셔서 사용하시면 됩니다.
     feature_selection1 = ['total_rooms', 'households']
     feature_selection2 = ['longitude', 'latitude']
     data_combination = scale_encode_combination(dataset, feature_selection1, ['ocean_proximity'])
     data_combination = data_combination['minmax_ordinal']
-    # data1 = data_combination[feature_selection1]
+    data1 = data_combination[feature_selection1]
     #data2 = data_combination[['longitude', 'latitude', 'ocean_proximity']]
-    # test_kmeans(data1)
+    #test_kmeans(data1)
     #test_gaussian(data1)
     #test_clarans(data1)
     #test_dbscan(data1)
     #test_mean_shift(data1)
-
     """
     # Selecting features randomly
     feature_combination_list = []
@@ -52,11 +51,12 @@ def auto_ml(dataset):
         data_combination = scale_encode_combination(dataset, combination, ['ocean_proximity'])
         for data_name, data in data_combination.items():
             data = data[combination]
-            test_kmeans(data)
-            test_gaussian(data)
-            test_clarans(data)
-            test_dbscan(data)
-            test_mean_shift(data)
+            model_dict = {'kmeans': test_kmeans(data),
+                          'em': test_gaussian(data),
+                          'clarans': test_clarans(data),
+                          'dbscan': test_dbscan(data),
+                          'meanshift': test_mean_shift(data)}
+            model_dict[model]
     """
 
 
@@ -183,11 +183,11 @@ def test_gaussian(x):
 
     for k in range(4, 7):
         plt.figure(figsize=(25, 5))
-
         for idx, cov in enumerate(covariance_type):
+
             model_gaussian = GaussianMixture(n_components=k, covariance_type=cov, init_params='kmeans')
             y = model_gaussian.fit_predict(x)
-
+            """
             # Plotting the results of clustering
             plt.subplot(1, 4, idx + 1)
             plt.title("Covariance = {}".format(cov))
@@ -197,12 +197,12 @@ def test_gaussian(x):
             for q in range(6, 7):
                 title = 'EM(GMM) K:' + str(k) + ', Covariance:' + str(cov) + ', q:' + str(q)
                 print_result(title, x, y, q)
-            """
 
+        """
         plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.8, wspace=0.4, hspace=0.4)
         plt.suptitle("EM(GMM): K = {}".format(k))
         plt.savefig('./Figure_' + str(k) + '.png', dpi=300)
-    """
+    
     for n in n_components:
         for covariance in covariance_type:
             for init in init_params:
@@ -353,10 +353,10 @@ def print_result(model_name, x, y, quantile):
     axes[1].set_ylabel(x.columns[1] if x.columns[1] != 1 else 'y')
     sns.scatterplot(ax=axes[1], data=new_x, x=new_x.iloc[:, 0], y=new_x.iloc[:, 1], hue='median_house_value')
     plt.show()
-    new_x['median_house_value']=pd.to_numeric(new_x['median_house_value']) # change the median value to string to int
-    print("Purity Score: ",purity_score(new_x['median_house_value'],y))
 
-    # Print the measurement results using Silhouette and purity
+    # Print the measurement results using purity and silhouette
+    new_x['median_house_value'] = pd.to_numeric(new_x['median_house_value'])  # Change the type to string to int
+    print("Purity Score: ", purity_score(new_x['median_house_value'], y))
     print('Euclidian Silhouette Score: ', silhouette_score(x, y, metric='euclidean'))
     print('Manhattan Silhouette Score: ', silhouette_score(x, y, metric='manhattan'))
     print('L2 Silhouette Score:', silhouette_score(x, y, metric='l2'))
@@ -380,6 +380,8 @@ df = pd.read_csv('housing.csv')
 # Dirty value detection
 # print('Before preprocessing dirty values')
 # print(df.isnull().sum(), end='\n\n')
+
+# Replace dirty values with mean
 df.fillna(df.mean(), inplace=True)
 # print('After preprocessing dirty values')
 # print(df.isnull().sum(), end='\n\n')
@@ -400,4 +402,4 @@ df.drop(['median_house_value'], axis=1, inplace=True)
 # plt.show()
 
 # Test all combinations
-auto_ml(df)
+auto_ml(df, 'kmeans')
