@@ -30,9 +30,9 @@ def auto_ml(dataset):
     feature_selection2 = ['longitude', 'latitude']
     data_combination = scale_encode_combination(dataset, feature_selection1, ['ocean_proximity'])
     data_combination = data_combination['minmax_ordinal']
-    #data1 = data_combination[feature_selection1]
+    # data1 = data_combination[feature_selection1]
     #data2 = data_combination[['longitude', 'latitude', 'ocean_proximity']]
-    #test_kmeans(data1)
+    # test_kmeans(data1)
     #test_gaussian(data1)
     #test_clarans(data1)
     #test_dbscan(data1)
@@ -353,6 +353,8 @@ def print_result(model_name, x, y, quantile):
     axes[1].set_ylabel(x.columns[1] if x.columns[1] != 1 else 'y')
     sns.scatterplot(ax=axes[1], data=new_x, x=new_x.iloc[:, 0], y=new_x.iloc[:, 1], hue='median_house_value')
     plt.show()
+    new_x['median_house_value']=pd.to_numeric(new_x['median_house_value']) # change the median value to string to int
+    print("Purity Score: ",purity_score(new_x['median_house_value'],y))
 
     # Print the measurement results using Silhouette and purity
     print('Euclidian Silhouette Score: ', silhouette_score(x, y, metric='euclidean'))
@@ -378,7 +380,7 @@ df = pd.read_csv('housing.csv')
 # Dirty value detection
 # print('Before preprocessing dirty values')
 # print(df.isnull().sum(), end='\n\n')
-df.dropna(axis=0, inplace=True)
+df.fillna(df.mean(), inplace=True)
 # print('After preprocessing dirty values')
 # print(df.isnull().sum(), end='\n\n')
 # print('Shape of the dataset')
