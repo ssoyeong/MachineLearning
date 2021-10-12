@@ -4,18 +4,15 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from pprint import pprint as pp
 from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, confusion_matrix
 from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, LabelEncoder
 from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler, MaxAbsScaler, Normalizer
 from sklearn.cluster import KMeans, DBSCAN, MeanShift, estimate_bandwidth
 from sklearn.neighbors import NearestNeighbors
-from sklearn.metrics import confusion_matrix
 from pyclustering.cluster.clarans import clarans
-from pyclustering.cluster import cluster_visualizer_multidim  # Modules for implementing CLARANS algorithm and plotting multi-dimensional data
-from pyclustering.utils import timedcall                               # To execute a function with execution time recorded
+from pyclustering.utils import timedcall  # To execute a function with execution time recorded
 
 warnings.filterwarnings('ignore')
 medianHouseValue = []
@@ -27,33 +24,39 @@ medianHouseValue = []
 # various model parameters values, and
 # various hyperparameters values.
 def auto_ml(dataset):
+    # TODO: Minmax scaled & Ordinal encoded 데이터 사용 테스트용입니다.
+    # TODO: Feature 조합 선택하시고 사용할 함수 주석 해제하셔서 사용하시면 됩니다.
+    feature_selection1 = ['total_rooms', 'households']
+    feature_selection2 = ['longitude', 'latitude', 'ocean_proximity']
+    data_combination = scale_encode_combination(dataset, feature_selection1, ['ocean_proximity'])
+    data_combination = data_combination['minmax_ordinal']
+    data = data_combination[feature_selection1]
+    #test_kmeans(data)
+    #test_gaussian(data)
+    #test_clarans(data)
+    #test_dbscan(data)
+    #test_mean_shift(data)
+
+    """
     # Selecting features randomly
     feature_combination_list = []
     numeric_cols = list(dataset.columns)
     numeric_cols.remove('ocean_proximity')
-
     for i in range(4):
         selected_features = random.sample(numeric_cols, i + 2)
         feature_combination_list.append(selected_features)
 
-    # TODO: 테스트해보면 출력 잘되는거 볼 수 있으실 거예요
-    # print("=> combination dataset! (15 types)")
-    # data_combination = scale_encode_combination(dataset, ['total_rooms', 'households'], ['ocean_proximity'])
-    # pp(data_combination)
-    # test_gaussian(data_combination['standard_ordinal'])
-    #
+    # Run algorithms with every combination
     for combination in feature_combination_list:
         data_combination = scale_encode_combination(dataset, combination, ['ocean_proximity'])
-
-        # Use one of the scale_encode_combination datasets
-        data = data_combination['minmax_ordinal']
-        data = data[combination]
-
-        # test_kmeans(data)
-        # test_gaussian(data)
-        # test_clarans(data)
-        # test_dbscan(data)
-        # test_mean_shift(data)
+        for data_name, data in data_combination.items():
+            data = data[combination]
+            test_kmeans(data)
+            test_gaussian(data)
+            test_clarans(data)
+            test_dbscan(data)
+            test_mean_shift(data)
+    """
 
 
 # Dataset scaling and encoding function
@@ -99,94 +102,14 @@ def scale_encode_combination(dataset, numerical_feature_list, categorical_featur
     return result_dict
 
 
-def purity_score(y_true, y_pred):
-
-    # compute confusion matrix
-    cf_matrix = confusion_matrix(y_true, y_pred)
-
-    # return purity
-    return np.sum(np.amax(cf_matrix, axis=0)) / np.sum(cf_matrix)
-
-
-def encode_scale_temp(dataframe, col):
-    # Encode the dataset
-    df_ordinal = dataframe.copy()
-    df_label = dataframe.copy()
-
-    x = pd.DataFrame(df[col])
-    # Convert categorical features to numeric values using ordinalEncoder
-    ordinalEncoder = OrdinalEncoder()
-    ordinalEncoder.fit(x)
-    df_ordinal[col] = ordinalEncoder.transform(x)
-
-    """
-    # Convert categorical features to numeric values using labelEncoder
-    labelEncoder = LabelEncoder()
-    labelEncoder.fit(x)
-    df_label[col] = labelEncoder.transform(x)
-
-    # Scaling the dataset
-    df_ordinal_standard = df_ordinal.copy()
-    df_ordinal_robust = df_ordinal.copy()
-    df_ordinal_minmax = df_ordinal.copy()
-    df_ordinal_maxabs = df_ordinal.copy()
-    df_label_standard = df_label.copy()
-    df_label_robust = df_label.copy()
-    df_label_minmax = df_label.copy()
-    df_label_maxabs = df_label.copy()
-
-    # Scaling the dataset using StandardScaler
-    scaler = StandardScaler()
-    df_ordinal_standard = scaler.fit_transform(df_ordinal)
-    df_ordinal_standard = pd.DataFrame(df_ordinal_standard, columns=df_ordinal.columns)
-    df_label_standard = scaler.fit_transform(df_label)
-    df_label_standard = pd.DataFrame(df_label_standard, columns=df_label.columns)
-
-    # Scaling the dataset using RobustScaler
-    scaler = RobustScaler()
-    df_ordinal_robust = scaler.fit_transform(df_ordinal)
-    df_ordinal_robust = pd.DataFrame(df_ordinal_robust, columns=df_ordinal.columns)
-    df_label_robust = scaler.fit_transform(df_label)
-    df_label_robust = pd.DataFrame(df_label_robust, columns=df_label.columns)
-    """
-    # Scaling the dataset using MinMaxScaler
-    scaler = MinMaxScaler()
-    df_ordinal_minmax = scaler.fit_transform(df_ordinal)
-    df_ordinal_minmax = pd.DataFrame(df_ordinal_minmax, columns=df_ordinal.columns)
-    """
-    df_label_minmax = scaler.fit_transform(df_label)
-    df_label_minmax = pd.DataFrame(df_label_minmax, columns=df_label.columns)
-    
-    # Scaling the dataset using MaxAbsScaler
-    scaler = MaxAbsScaler()
-    df_ordinal_maxabs = scaler.fit_transform(df_ordinal)
-    df_ordinal_maxabs = pd.DataFrame(df_ordinal_maxabs, columns=df_ordinal.columns)
-    df_label_maxabs = scaler.fit_transform(df_label)
-    df_label_maxabs = pd.DataFrame(df_label_maxabs, columns=df_label.columns)
-
-    # Show the results using OrdinalEncoder and MinMaxScaler
-    fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(15, 15))
-    ax1.set_title('Before Scaling the OrdinalEncoded dataset')
-    ax2.set_title('After MinMax Scaling the OrdinalEncoded dataset')
-
-    for i in df_ordinal_minmax.columns:
-        sns.kdeplot(df_ordinal[i], ax=ax1)
-        sns.kdeplot(df_ordinal_minmax[i], ax=ax2)
-
-    # plt.show()
-    """
-
-    # Return the one of the encoded and scaled datasets
-    return df_ordinal_minmax
-
 # K-means
 def test_kmeans(x):
     pca = PCA(n_components=2) # for the feature reduction and plotting
     n_clusters = [2, 3, 4, 5, 6, 7, 8] # k
-    n_init = [10, 20, 30, 40, 50] 
+    n_init = [10, 20, 30, 40, 50]
     algorithm = ['auto', 'full', 'elkan'] # algorithm list
     distortions = [] # for elbow method
-    x = pca.fit_transform(x) 
+    x = pca.fit_transform(x)
     # the combination of kmeans
     for n in n_clusters:
         for algo in algorithm:
@@ -253,10 +176,32 @@ def test_gaussian(x):
     x = pd.DataFrame(pca.fit_transform(x))
 
     # Parameters
-    n_components = range(2, 12)
+    n_components = range(2, 13)
     covariance_type = ['full', 'tied', 'diag', 'spherical']
     init_params = ['kmeans', 'random']
 
+    for k in range(4, 7):
+        plt.figure(figsize=(25, 5))
+
+        for idx, cov in enumerate(covariance_type):
+            model_gaussian = GaussianMixture(n_components=k, covariance_type=cov, init_params='kmeans')
+            y = model_gaussian.fit_predict(x)
+
+            # Plotting the results of clustering
+            plt.subplot(1, 4, idx + 1)
+            plt.title("Covariance = {}".format(cov))
+            plt.scatter(x.iloc[:, 0], x.iloc[:, 1], c=y, alpha=0.7)
+            """
+            # Plotting the results comparing with 'Median house value'
+            for q in range(6, 7):
+                title = 'EM(GMM) K:' + str(k) + ', Covariance:' + str(cov) + ', q:' + str(q)
+                print_result(title, x, y, q)
+            """
+
+        plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.8, wspace=0.4, hspace=0.4)
+        plt.suptitle("EM(GMM): K = {}".format(k))
+        plt.savefig('./Figure_' + str(k) + '.png', dpi=300)
+    """
     for n in n_components:
         for covariance in covariance_type:
             for init in init_params:
@@ -265,6 +210,7 @@ def test_gaussian(x):
                 y = model_gaussian.predict(x)
                 for q in range(4, 7):
                     print_result('Gaussian Mixture', x, y, q)
+    """
 
 
 # CLARANS
@@ -301,7 +247,6 @@ def test_dbscan(x):
     eps = [0.05, 0.1, 0.5, 1, 2]
     min_samples = [5, 30, 500]
 
-
     for i in range(len(min_samples)):
         plt.figure(figsize=(25, 5))
         for j in range(len(eps)):
@@ -318,12 +263,7 @@ def test_dbscan(x):
             plt.scatter(df_new.iloc[:, 0], df_new.iloc[:, 1], c=y, alpha=0.7)
             plt.title("eps = {:.2f}".format(eps[j]))
 
-        plt.subplots_adjust(left=0.1,
-                            bottom=0.1,
-                            right=0.95,
-                            top=0.8,
-                            wspace=0.4,
-                            hspace=0.4)
+        plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.8, wspace=0.4, hspace=0.4)
         plt.suptitle("DBSCAN: min_samples = {}".format(min_samples[i]))
         plt.savefig('./DBSCAN/dbscan_minsamples_' + str(min_samples[i]) + '.png', dpi=300)
 
@@ -413,10 +353,18 @@ def print_result(model_name, x, y, quantile):
     sns.scatterplot(ax=axes[1], data=new_x, x=new_x.iloc[:, 0], y=new_x.iloc[:, 1], hue='median_house_value')
     plt.show()
 
-    # Print the measurement results using Silhouette, knee, and purity
-    print("Euclidian Silhouette Score: ", silhouette_score(x, y, metric='euclidean'))
-    print("Manhattan Silhouette Score: ", silhouette_score(x, y, metric='manhattan'))
+    # Print the measurement results using Silhouette and purity
+    print('Euclidian Silhouette Score: ', silhouette_score(x, y, metric='euclidean'))
+    print('Manhattan Silhouette Score: ', silhouette_score(x, y, metric='manhattan'))
+    print('L2 Silhouette Score:', silhouette_score(x, y, metric='l2'))
+    print('L1 Silhouette Score:', silhouette_score(x, y, metric='l1'))
 
+
+def purity_score(y_true, y_pred):
+    # compute confusion matrix
+    cf_matrix = confusion_matrix(y_true, y_pred)
+
+    return np.sum(np.amax(cf_matrix, axis=0)) / np.sum(cf_matrix)
 
 
 ######################################################################################################
@@ -439,14 +387,6 @@ df.dropna(axis=0, inplace=True)
 medianHouseValue = df['median_house_value']
 df.drop(['median_house_value'], axis=1, inplace=True)
 
-# Test all combinations
-# auto_ml(df)
-
-
-########## 임시 테스트용 ############
-# Encoding and Scaling the dataset
-df_encoded_scaled = encode_scale_temp(df, 'ocean_proximity')
-
 # Draw heat map
 # heatmap_data = df
 # colormap = plt.cm.PuBu
@@ -456,26 +396,5 @@ df_encoded_scaled = encode_scale_temp(df, 'ocean_proximity')
 #             annot=True, annot_kws={"size": 8})
 # plt.show()
 
-# Combinations of features
-col1 = ['total_rooms', 'total_bedrooms', 'population', 'households']
-col2 = ['total_rooms', 'households']
-col3 = ['longitude', 'latitude', 'ocean_proximity']
-col4 = ['median_income', 'households', 'total_rooms']
-col5 = ['latitude', 'total_rooms', 'households', 'median_income']
-
-# Dataframes with various combination
-df1 = df_encoded_scaled[col1]
-df2 = df_encoded_scaled[col2]
-df3 = df_encoded_scaled[col3]
-df4 = df_encoded_scaled[col4]
-df5 = df_encoded_scaled[col5]
-
-# print("\n-------The result---------\n")
-# test_kmeans(df3)
-# test_gaussian(df3)
-# test_clarans(df3)
-# test_dbscan(df2)
-# test_mean_shift(df3)
-# test_kmeans(df1)
-# test_mean_shift(df1)
-# auto_ml(df)
+# Test all combinations
+auto_ml(df)
