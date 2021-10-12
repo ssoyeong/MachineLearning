@@ -24,20 +24,6 @@ medianHouseValue = []
 # various model parameters values, and
 # various hyperparameters values.
 def auto_ml(dataset, model):
-    # TODO: Minmax scaled & Ordinal encoded 데이터 사용 테스트용입니다.
-    # TODO: Feature 조합 선택하시고 사용할 데이터와 함수 주석 해제하셔서 사용하시면 됩니다.
-    feature_selection1 = ['total_rooms', 'households']
-    feature_selection2 = ['longitude', 'latitude']
-    data_combination = scale_encode_combination(dataset, feature_selection1, ['ocean_proximity'])
-    data_combination = data_combination['minmax_ordinal']
-    data1 = data_combination[feature_selection1]
-    #data2 = data_combination[['longitude', 'latitude', 'ocean_proximity']]
-    #test_kmeans(data1)
-    #test_gaussian(data1)
-    #test_clarans(data1)
-    #test_dbscan(data1)
-    #test_mean_shift(data1)
-    """
     # Selecting features randomly
     feature_combination_list = []
     numeric_cols = list(dataset.columns)
@@ -57,7 +43,6 @@ def auto_ml(dataset, model):
                           'dbscan': test_dbscan(data),
                           'meanshift': test_mean_shift(data)}
             model_dict[model]
-    """
 
 
 # Dataset scaling and encoding function
@@ -119,56 +104,6 @@ def test_kmeans(x):
                 kmeans.fit(x)
                 y = kmeans.predict(x)
                 print_result('K-Means', pd.DataFrame(x), y, 5)
-
-    """
-    # elbow method
-    for k in range(2, 9):
-        kmeans = KMeans(n_clusters=k)
-        kmeans.fit(x)
-        distortions.append(kmeans.inertia_)
-
-    
-    plt.figure(figsize=(10, 5))
-    plt.plot(range(2, 9), distortions)
-    plt.grid(True)
-    plt.title('Elbow curve')
-    plt.show()
-    list={}
-
-    for i in range(0, len(n_clusters)):
-        plt.figure(figsize=(16, 4))
-        plt.suptitle("K-Means: N_CLUSTERS={0}".format(n_clusters[i]))
-        plt.subplots_adjust(wspace=0.4, hspace=0.4)
-        plt.rc("font", size=5)
-
-        # SUBPLOT POSITION
-        position = 1
-        for j in range(0, len(algorithm)):
-            x = pca.fit_transform(x)
-            model = KMeans(random_state=0, n_clusters=n_clusters[i], init='k-means++', max_iter=max_iter[2],algorithm=algorithm[j])
-            model.fit(x)
-            label = model.labels_
-
-            cluster_id = pd.DataFrame(label)
-            kx = pd.DataFrame(x)
-            k1 = pd.concat([kx, cluster_id], axis=1)
-            k1.columns = ['p1', 'p2', "cluster"]
-            labeled = k1.groupby("cluster")
-            score = silhouette_score(x, label, metric="euclidean")
-
-            plt.subplot(1, 3, position)
-            plt.title("Algorithm={algo}Score={score}".format(algo=algorithm[j],score=round(score,3)))
-            position += 1
-
-            for cluster, pos in labeled:
-                if cluster == -1:
-                    # NOISE WITH COLOR BLACK
-                    plt.plot(pos.p1, pos.p2, marker='o', linestyle='', color='black')
-                else:
-                    plt.plot(pos.p1, pos.p2, marker='o', linestyle='')
-
-        plt.show()
-        """
 
 
 # EM(GMM)
@@ -255,7 +190,7 @@ def test_dbscan(x):
             y = dbscan.fit_predict(df_new)
 
             # Plotting the results comparing with 'Median house value'
-            for q in range(6, 7):
+            for q in range(3, 4):
                 title = 'DBSCAN(MinPts:' + str(min_samples[i]) + ', Eps:' + str(eps[j]) + ', q:' + str(q) + ')'
                 print_result(title, df_new, y, q)
 
@@ -297,43 +232,6 @@ def test_mean_shift(x):
             y = model.predict(x)
             print_result('Mean Shift', x, y, 5)
 
-    """
-    for i in range(0, len(sample_list)):
-        plt.figure(figsize=(16, 4))
-        plt.suptitle("MeansShift: N_samples={0}".format(sample_list[i]))
-        plt.subplots_adjust(wspace=0.4, hspace=0.4)
-        plt.rc("font", size=5)
-
-        position = 1
-        bandwidth = estimate_bandwidth(x, n_samples=sample_list[i])
-
-        for j in range(0, len(min_bin_freq)):
-            x = pca.fit_transform(x)
-            model = MeanShift(bandwidth=bandwidth, cluster_all=True, max_iter=max_iter[2], min_bin_freq=min_bin_freq[j])
-            model.fit(x)
-
-            labels = model.labels_
-            cluster_id = pd.DataFrame(labels)
-            kx = pd.DataFrame(x)
-            k1 = pd.concat([kx, cluster_id], axis=1)
-            k1.columns = ['p1', 'p2', "cluster"]
-            labeled = k1.groupby("cluster")
-
-            score = silhouette_score(x, labels, metric="euclidean")
-            plt.subplot(1, 6, position)
-            plt.title("Min_bin_freq={maxiter} Score={score}".format(maxiter=min_bin_freq[j], score=round(score, 3)))
-            position += 1
-
-            for cluster, pos in labeled:
-                if cluster == -1:
-                    # NOISE WITH COLOR BLACK
-                    plt.plot(pos.p1, pos.p2, marker='o', linestyle='', color='black')
-                else:
-                    plt.plot(pos.p1, pos.p2, marker='o', linestyle='')
-
-        plt.show()
-        """
-
 
 # Result printing function
 def print_result(model_name, x, y, quantile):
@@ -373,33 +271,24 @@ def purity_score(y_true, y_pred):
 ######################################################################################################
 # Read dataset
 df = pd.read_csv('housing.csv')
-# print('Dateset info')
-# print(df.info(), end='\n\n')
-# print('Dateset head', df.head(), sep='\n', end='\n\n')
+print('Dateset info')
+print(df.info(), end='\n\n')
+print('Dateset head', df.head(), sep='\n', end='\n\n')
 
 # Dirty value detection
-# print('Before preprocessing dirty values')
-# print(df.isnull().sum(), end='\n\n')
+print('Before preprocessing dirty values')
+print(df.isnull().sum(), end='\n\n')
 
 # Replace dirty values with mean
 df.fillna(df.mean(), inplace=True)
-# print('After preprocessing dirty values')
-# print(df.isnull().sum(), end='\n\n')
-# print('Shape of the dataset')
-# print(df.shape, end='\n\n')
+print('After preprocessing dirty values')
+print(df.isnull().sum(), end='\n\n')
+print('Shape of the dataset')
+print(df.shape, end='\n\n')
 
 # Drop the feature 'median_house_value'
 medianHouseValue = df['median_house_value']
 df.drop(['median_house_value'], axis=1, inplace=True)
-
-# Draw heat map
-# heatmap_data = df
-# colormap = plt.cm.PuBu
-# plt.figure(figsize=(15, 15))
-# plt.title("Correlation of Features", y=1.05, size=15)
-# sns.heatmap(heatmap_data.corr(), linewidths=0.1, square=False, cmap=colormap, linecolor="white",
-#             annot=True, annot_kws={"size": 8})
-# plt.show()
 
 # Test all combinations
 auto_ml(df, 'kmeans')
