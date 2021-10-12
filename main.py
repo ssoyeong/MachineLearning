@@ -181,19 +181,20 @@ def encode_scale_temp(dataframe, col):
 
 # K-means
 def test_kmeans(x):
-    pca = PCA(n_components=2)
-    n_clusters = [2, 3, 4, 5, 6, 7, 8]
-    init = ['k-means++', 'random']
-    n_init = [10, 20, 30, 40, 50]
-    max_iter = [100, 300, 500, 700, 900]
-    algorithm = ['auto', 'full', 'elkan']
-    distortions = []
-
-    x = pca.fit_transform(x)
-    kmeans = KMeans(n_clusters=4)
-    kmeans.fit(x)
-    y = kmeans.predict(x)
-    print_result('K-Means', pd.DataFrame(x), y, 5)
+    pca = PCA(n_components=2) # for the feature reduction and plotting
+    n_clusters = [2, 3, 4, 5, 6, 7, 8] # k
+    n_init = [10, 20, 30, 40, 50] 
+    algorithm = ['auto', 'full', 'elkan'] # algorithm list
+    distortions = [] # for elbow method
+    x = pca.fit_transform(x) 
+    # the combination of kmeans
+    for n in n_clusters:
+        for algo in algorithm:
+            for ni in n_init:
+                kmeans = KMeans(n_clusters=n,n_init=ni, algorithm=algo)
+                kmeans.fit(x)
+                y = kmeans.predict(x)
+                print_result('K-Means', pd.DataFrame(x), y, 5)
 
     """
     # elbow method
@@ -343,19 +344,19 @@ def test_dbscan(x):
 def test_mean_shift(x):
     bin_seeding = [True, False]
     min_bin_freq = [1, 3, 5, 7, 9, 11]
-    cluster_all = [True, False]
-    n_jobs = [1, 10, 100, 1000, 2000]
-    max_iter = [100, 300, 500, 700, 900, 1000]
+    cluster_all = [True, False] # the option
     pca = PCA(n_components=2)
     sample_list = [100, 1000, 5000, 10000]
-
     x = pca.fit_transform(x)
-    bandwidth = estimate_bandwidth(x)
-    model = MeanShift(bandwidth=bandwidth, cluster_all=True, max_iter=max_iter[2], min_bin_freq=min_bin_freq[2])
-    x = pd.DataFrame(x)
-    model.fit(x)
-    y = model.predict(x)
-    print_result('Mean Shift', x, y, 5)
+    # the combination of meanshift
+    for nsam in sample_list:
+        for min in min_bin_freq:
+            bandwidth = estimate_bandwidth(x,n_samples=nsam,min_bin_freq=min)
+            model = MeanShift(bandwidth=bandwidth, cluster_all=True, max_iter=500, min_bin_freq=min_bin_freq[2])
+            x = pd.DataFrame(x)
+            model.fit(x)
+            y = model.predict(x)
+            print_result('Mean Shift', x, y, 5)
 
     """
     for i in range(0, len(sample_list)):
@@ -476,5 +477,6 @@ df5 = df_encoded_scaled[col5]
 # test_clarans(df3)
 # test_dbscan(df3)
 # test_mean_shift(df3)
-
+# test_kmeans(df1)
+# test_mean_shift(df1)
 # auto_ml(df)
