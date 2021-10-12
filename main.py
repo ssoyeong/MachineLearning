@@ -25,17 +25,18 @@ medianHouseValue = []
 # various hyperparameters values.
 def auto_ml(dataset):
     # TODO: Minmax scaled & Ordinal encoded 데이터 사용 테스트용입니다.
-    # TODO: Feature 조합 선택하시고 사용할 함수 주석 해제하셔서 사용하시면 됩니다.
+    # TODO: Feature 조합 선택하시고 사용할 데이터와 함수 주석 해제하셔서 사용하시면 됩니다.
     feature_selection1 = ['total_rooms', 'households']
-    feature_selection2 = ['longitude', 'latitude', 'ocean_proximity']
+    feature_selection2 = ['longitude', 'latitude']
     data_combination = scale_encode_combination(dataset, feature_selection1, ['ocean_proximity'])
     data_combination = data_combination['minmax_ordinal']
-    data = data_combination[feature_selection1]
-    #test_kmeans(data)
-    #test_gaussian(data)
-    #test_clarans(data)
-    #test_dbscan(data)
-    #test_mean_shift(data)
+    #data1 = data_combination[feature_selection1]
+    #data2 = data_combination[['longitude', 'latitude', 'ocean_proximity']]
+    #test_kmeans(data1)
+    #test_gaussian(data1)
+    #test_clarans(data1)
+    #test_dbscan(data1)
+    #test_mean_shift(data1)
 
     """
     # Selecting features randomly
