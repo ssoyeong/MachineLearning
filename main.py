@@ -90,12 +90,12 @@ def scale_encode_combination(dataset, numerical_feature_list, categorical_featur
 
 # K-means
 def test_kmeans(x):
-    pca = PCA(n_components=2) # for the feature reduction and plotting
-    n_clusters = [2, 3, 4, 5, 6, 7, 8] # k
-    n_init = [10, 20, 30, 40, 50]
-    algorithm = ['auto', 'full', 'elkan'] # algorithm list
-    distortions = [] # for elbow method
+    pca = PCA(n_components=2)  # for the feature reduction and plotting
     x = pca.fit_transform(x)
+    n_clusters = [2, 3, 4, 5, 6, 7, 8]  # k
+    n_init = [10, 20, 30, 40, 50]
+    algorithm = ['auto', 'full', 'elkan']  # algorithm list
+
     # the combination of kmeans
     for n in n_clusters:
         for algo in algorithm:
@@ -116,37 +116,15 @@ def test_gaussian(x):
     covariance_type = ['full', 'tied', 'diag', 'spherical']
     init_params = ['kmeans', 'random']
 
-    for k in range(4, 7):
-        plt.figure(figsize=(25, 5))
-        for idx, cov in enumerate(covariance_type):
-
-            model_gaussian = GaussianMixture(n_components=k, covariance_type=cov, init_params='kmeans')
-            y = model_gaussian.fit_predict(x)
-            """
-            # Plotting the results of clustering
-            plt.subplot(1, 4, idx + 1)
-            plt.title("Covariance = {}".format(cov))
-            plt.scatter(x.iloc[:, 0], x.iloc[:, 1], c=y, alpha=0.7)
-            """
-            # Plotting the results comparing with 'Median house value'
-            for q in range(6, 7):
-                title = 'EM(GMM) K:' + str(k) + ', Covariance:' + str(cov) + ', q:' + str(q)
-                print_result(title, x, y, q)
-
-        """
-        plt.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.8, wspace=0.4, hspace=0.4)
-        plt.suptitle("EM(GMM): K = {}".format(k))
-        plt.savefig('./Figure_' + str(k) + '.png', dpi=300)
-    
     for n in n_components:
-        for covariance in covariance_type:
+        for cov in covariance_type:
             for init in init_params:
-                model_gaussian = GaussianMixture(n_components=n, covariance_type=covariance, init_params=init)
+                model_gaussian = GaussianMixture(n_components=n, covariance_type=cov, init_params=init)
                 model_gaussian.fit(x)
                 y = model_gaussian.predict(x)
                 for q in range(4, 7):
-                    print_result('Gaussian Mixture', x, y, q)
-    """
+                    title = 'EM(GMM) K:' + str(n) + ', Covariance:' + str(cov) + ', q:' + str(q)
+                    print_result(title, x, y, q)
 
 
 # CLARANS
@@ -216,12 +194,11 @@ def test_dbscan(x):
 
 # Mean Shift
 def test_mean_shift(x):
-    bin_seeding = [True, False]
     min_bin_freq = [1, 3, 5, 7, 9, 11]
-    cluster_all = [True, False] # the option
     pca = PCA(n_components=2)
     sample_list = [100, 1000, 5000, 10000]
     x = pca.fit_transform(x)
+
     # the combination of meanshift
     for nsam in sample_list:
         for min in min_bin_freq:
@@ -242,7 +219,7 @@ def print_result(model_name, x, y, quantile):
 
     # Plot the results of the clustering and "median house value" distribution
     fig, axes = plt.subplots(1, 2, figsize=(15, 15))
-    axes[0].set_title(model_name + 'Model Clustering')
+    axes[0].set_title(model_name + ' Model Clustering')
     axes[0].set_xlabel(x.columns[0] if x.columns[0] != 0 else 'x')
     axes[0].set_ylabel(x.columns[1] if x.columns[1] != 1 else 'y')
     axes[0].scatter(x.iloc[:, 0], x.iloc[:, 1], c=y, s=40, cmap='viridis')
@@ -262,8 +239,7 @@ def print_result(model_name, x, y, quantile):
 
 
 def purity_score(y_true, y_pred):
-    # compute confusion matrix
-    cf_matrix = confusion_matrix(y_true, y_pred)
+    cf_matrix = confusion_matrix(y_true, y_pred)  # compute confusion matrix
 
     return np.sum(np.amax(cf_matrix, axis=0)) / np.sum(cf_matrix)
 
