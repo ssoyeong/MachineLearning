@@ -201,9 +201,9 @@ def test_mean_shift(x):
 
     # the combination of meanshift
     for nsam in sample_list:
+        bandwidth = estimate_bandwidth(x, n_samples=nsam)
         for min in min_bin_freq:
-            bandwidth = estimate_bandwidth(x,n_samples=nsam,min_bin_freq=min)
-            model = MeanShift(bandwidth=bandwidth, cluster_all=True, max_iter=500, min_bin_freq=min_bin_freq[2])
+            model = MeanShift(bandwidth=bandwidth, cluster_all=True, max_iter=500, min_bin_freq=min)
             x = pd.DataFrame(x)
             model.fit(x)
             y = model.predict(x)
