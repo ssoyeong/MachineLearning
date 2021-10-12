@@ -301,6 +301,7 @@ def test_dbscan(x):
     eps = [0.05, 0.1, 0.5, 1, 2]
     min_samples = [5, 30, 500]
 
+
     for i in range(len(min_samples)):
         plt.figure(figsize=(25, 5))
         for j in range(len(eps)):
@@ -326,18 +327,15 @@ def test_dbscan(x):
         plt.suptitle("DBSCAN: min_samples = {}".format(min_samples[i]))
         plt.savefig('./DBSCAN/dbscan_minsamples_' + str(min_samples[i]) + '.png', dpi=300)
 
-    neigh = NearestNeighbors(n_neighbors=15000)
-    neigh_fit = neigh.fit(df_new)
-    distances, indices = neigh_fit.kneighbors(df_new)
+    # Elbow curve
+    neigh = NearestNeighbors(n_neighbors=5)
+    neigh.fit(df_new)
+    distances, indices = neigh.kneighbors(df_new)
 
-    # Knee method
-    distances = np.sort(distances, axis=0)
-    distances = distances[:, 1]
-    plt.plot(distances)
-    plt.title("Knee method of DBSCAN determining min_samples")
+    plt.figure(figsize=(12, 6))
+    plt.plot(np.sort(distances[:, 4]))
+    plt.title("Elbow curve of DBSCAN")
     plt.show()
-
-
 
 
 # Mean Shift
@@ -416,8 +414,9 @@ def print_result(model_name, x, y, quantile):
     plt.show()
 
     # Print the measurement results using Silhouette, knee, and purity
-    # silhouette_score(x, y, metric='euclidean')
-    # silhouette_score(x, y, metric='manhattan')
+    print("Euclidian Silhouette Score: ", silhouette_score(x, y, metric='euclidean'))
+    print("Manhattan Silhouette Score: ", silhouette_score(x, y, metric='manhattan'))
+
 
 
 ######################################################################################################
@@ -475,7 +474,7 @@ df5 = df_encoded_scaled[col5]
 # test_kmeans(df3)
 # test_gaussian(df3)
 # test_clarans(df3)
-# test_dbscan(df3)
+# test_dbscan(df2)
 # test_mean_shift(df3)
 # test_kmeans(df1)
 # test_mean_shift(df1)
